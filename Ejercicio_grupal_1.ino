@@ -18,8 +18,8 @@
 #define BUTTON_PIN  0
 
 // datos para actualización   >>>> SUSTITUIR IP <<<<<
-//#define HTTP_OTA_ADDRESS      F("192.168.1.114")       // Address of OTA update server
-#define HTTP_OTA_ADDRESS      F("192.168.0.17")        // Address of OTA update server
+#define HTTP_OTA_ADDRESS      F("192.168.1.114")       // Address of OTA update server
+//#define HTTP_OTA_ADDRESS      F("192.168.0.17")        // Address of OTA update server
 #define HTTP_OTA_PATH         F("/esp8266-ota/update") // Path to update firmware
 #define HTTP_OTA_PORT         1880                     // Port of update server
                                                        // Name of firmware
@@ -27,12 +27,12 @@
 
 // Update these with values suitable for your network.
 
-//const char* ssid = "WLAN_2G_COLETO";
-//const char* password = "4eddec6e8465458a4096";
-//const char* mqtt_server = "192.168.1.114";
-const char* ssid = "vodafone7C70";
-const char* password = "XYGTSS2FMRLC7B";
-const char* mqtt_server = "192.168.0.17";
+const char* ssid = "WLAN_2G_COLETO";
+const char* password = "4eddec6e8465458a4096";
+const char* mqtt_server = "192.168.1.114";
+//const char* ssid = "vodafone7C70";
+//const char* password = "XYGTSS2FMRLC7B";
+//const char* mqtt_server = "192.168.0.17";
 //const char* mqtt_server = "iot.ac.uma.es";
 
 float led, ledControl;
@@ -51,7 +51,7 @@ volatile int fin_pulsacion = 0;
 volatile long inicio = 0;
 volatile long fin = 0;
 
-int encendido = 0;
+int encendido = 1;
 
 Button2 button = Button2(BUTTON_PIN);
 
@@ -177,7 +177,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
       if (ledControl < led) ledControl++;
       else ledControl--;
       analogWrite(BUILTIN_LED, ledControl);
-      if (ledControl == 0) encendido = 0;
+      if (ledControl == 100) encendido = 0;
       else encendido = 1;
             
       delay(10);
@@ -314,21 +314,24 @@ void fota() {
 }
 
 void hacerPulsacionCorta(Button2& btn) {
-  Serial.println("Pulsación corta");
   if (encendido == 1) {
-    analogWrite(BUILTIN_LED, 0);
+    analogWrite(BUILTIN_LED, 100);
+    led=100;
+    encendido = 0;
   } else {
     analogWrite(BUILTIN_LED, ledControl);
+    led=ledControl;
+    encendido = 1;
   }
 }
 
 void hacerPulsacionDoble(Button2& btn) {
-  Serial.println("Pulsación doble");
-  analogWrite(BUILTIN_LED, 100);
+  analogWrite(BUILTIN_LED, 0);
+  led=0;
+  ledControl=0;
 }
 
 void hacerPulsacionLarga(Button2& btn) {
-  Serial.println("Pulsación larga");
   fota();
 }
 
@@ -346,7 +349,7 @@ void setup() {
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
-
+  
   button.setClickHandler(hacerPulsacionCorta);
   button.setLongClickHandler(hacerPulsacionLarga);
   button.setDoubleClickHandler(hacerPulsacionDoble);
@@ -376,7 +379,7 @@ void setup() {
   */
 
   // PULSACIONES
-  pinMode(boton_flash, INPUT_PULLUP);
+  //pinMode(boton_flash, INPUT_PULLUP);
   // descomentar para activar interrupción
   // attachInterrupt(digitalPinToInterrupt(boton_flash), RTI, CHANGE);
 
@@ -392,7 +395,7 @@ void loop() {
 
   // Aumentar a cinco minutos.
   unsigned long now = millis();
-  if (now - lastMsg > 1000) {
+  if (now - lastMsg > 10000) {
 
     delay(dht.getMinimumSamplingPeriod());
 
