@@ -16,7 +16,7 @@
 #include <WiFiManager.h>
 #include <EEPROM.h>
 
-/* ============================= Configuracion ============================= */
+/* ============================= Configuración ============================= */
 
 ADC_MODE(ADC_VCC);
 
@@ -38,15 +38,15 @@ DHTesp dht;
 /* ---------------------------------- OTA ---------------------------------- */
 
 // datos para actualización   >>>> SUSTITUIR IP <<<<<
-#define HTTP_OTA_ADDRESS      F("192.168.0.193")       // Address of OTA update server
-//#define HTTP_OTA_ADDRESS      F("iot.ac.uma.es")       // Address of uma
+//#define HTTP_OTA_ADDRESS      F("192.168.0.193")       // Address of OTA update server
+#define HTTP_OTA_ADDRESS      F("iot.ac.uma.es")       // Address of uma
 #define HTTP_OTA_PATH         F("/esp8266-ota/update") // Path to update firmware
 #define HTTP_OTA_PORT         1880                     // Port of update server
 // Name of firmware
-//#define OTA_URL "https://iot.ac.uma.es:1880/esp8266-ota/update"// Address of OTA update server
-#define OTA_URL "http://192.168.0.193:1880/esp8266-ota/update"// Address of OTA update server
+#define OTA_URL "https://iot.ac.uma.es:1880/esp8266-ota/update"// Address of OTA update server
+//#define OTA_URL "http://192.168.0.193:1880/esp8266-ota/update"// Address of OTA update server
 
-#define HTTP_OTA_VERSION      String(__FILE__).substring(String(__FILE__).lastIndexOf('\\')+1) + ".nodemcu"
+#define HTTP_OTA_VERSION      String(__FILE__).substring(String(__FILE__).lastIndexOf('\\') + 1) + ".nodemcu"
 String OTAfingerprint("5d 56 09 5c 5f 7b a4 3f 01 b7 22 31 d3 a7 da a3 6e 10 2e 60"); // sustituir valor
 
 //MAC D8:F1:5B:11:21:3C
@@ -60,7 +60,7 @@ String OTAfingerprint("5d 56 09 5c 5f 7b a4 3f 01 b7 22 31 d3 a7 da a3 6e 10 2e 
 
 int otaMode = 0;
 float otaTime = 0;
-float lastTime= 0;
+float lastTime = 0;
 unsigned long lastMsg = 0;
 
 /* ---------------------------------- WIFI ---------------------------------- */
@@ -72,12 +72,13 @@ WiFiClient espClient;
 WiFiManager wm; // global wm instance
 WiFiManagerParameter custom_field; // global param ( for non blocking w params )
 
-int wifiStatus=0;
+int wifiStatus = 0;
 
 /* ---------------------------------- MQTT ---------------------------------- */
 
 PubSubClient client(espClient);
-const char* mqtt_server = "192.168.0.193";
+const char* mqtt_server = "iot.ac.uma.es";
+// const char* mqtt_server = "192.168.0.193";
 
 /* ------------------------------- Pulsaciones ------------------------------ */
 #define BUTTON_PIN  0
@@ -85,7 +86,7 @@ Button2 button = Button2(BUTTON_PIN);
 
 /* ----------------------------------- LED ---------------------------------- */
 
-float timeLed= 10;
+float timeLed = 10;
 float led, ledControl;
 int encendido = 1;
 
@@ -174,14 +175,14 @@ void setup_wifi() {
     wm.addParameter(&custom_field);
     wm.setSaveParamsCallback(saveParamCallback);
   
-    std::vector<const char *> menu = {"wifi","info","param","sep","restart","exit"};
+    std::vector<const char *> menu = {"wifi", "info", "param", "sep", "restart", "exit"};
     wm.setMenu(menu);
     wm.setClass("invert");
   
     Serial.println("Starting config portal");
     wm.setConfigPortalTimeout(120);
     
-    if (!wm.startConfigPortal("ConfiguracionWifiESP","password")) {
+    if (!wm.startConfigPortal("ConfiguracionWifiESP", "password")) {
       Serial.println("Failed to connect or hit timeout");
       delay(3000);
     } else {
@@ -311,7 +312,7 @@ bool checkTopicOTAupdate(char* topic, char* mensaje) {
 
   // compruebo que es el topic adecuado
   if (strcmp(topic, "infind/GRUPO2/OTA/update") == 0) {
-    if(otaMode == 1){
+    if (otaMode == 1) {
       checkOTA();
     }
     
@@ -322,10 +323,9 @@ bool checkTopicOTAupdate(char* topic, char* mensaje) {
 
 /* -- infind/GRUPO2/led/cmd -- */
 
-bool checkTopicLedCmd(char* topic, char* mensaje){
+bool checkTopicLedCmd(char* topic, char* mensaje) {
 
- if(strcmp(topic,"infind/GRUPO2/led/cmd")==0)
-  {
+ if(strcmp(topic,"infind/GRUPO2/led/cmd") == 0) {
     StaticJsonDocument<512> root; // el tamaño tiene que ser adecuado para el mensaje
     // Deserialize the JSON document
     DeserializationError error = deserializeJson(root, mensaje);
@@ -335,23 +335,22 @@ bool checkTopicLedCmd(char* topic, char* mensaje){
       Serial.print("Error deserializeJson() failed: ");
       Serial.println(error.c_str());
     }
-    else
-    if(root.containsKey("level"))  // comprobar si existe el campo/clave que estamos buscando
+    else if(root.containsKey("level"))  // comprobar si existe el campo/clave que estamos buscando
     {
       float valor = root["level"];
       Serial.print("Mensaje OK, level = ");
       Serial.println(valor);
 
       // Escribimos el valor en el led
-      ledControl= led;
-      led= 100 - valor;
+      ledControl = led;
+      led = 100 - valor;
      
       snprintf (msg, MSG_BUFFER_SIZE, "{\"led\":%f} ", valor);
       client.publish("infind/GRUPO2/led/status", msg);
 
       // Aumentamos o disminuimos la intensidad del led gradualmente
 
-      if(root.containsKey("timeLed"))  // comprobar si existe el campo/clave que estamos buscando
+      if (root.containsKey("timeLed"))  // comprobar si existe el campo/clave que estamos buscando
       {
 
         timeLed = root["timeLed"];
@@ -400,15 +399,41 @@ void reconnect() {
     boolean cleanSession = true;
     
     // Attempt to connect
-    //if (client.connect(clientId.c_str(),"infind","zancudo",willTopic, willQoS, willRetain, willMessage, cleanSession)) {
-    if (client.connect(clientId.c_str(),"","",willTopic, willQoS, willRetain, willMessage, cleanSession)) {
+    if (client.connect(clientId.c_str(), "infind", "zancudo", willTopic, willQoS, willRetain, willMessage, cleanSession)) {
+    //if (client.connect(clientId.c_str(), "", "", willTopic, willQoS, willRetain, willMessage, cleanSession)) {
 
-      client.publish("infind/GRUPO2/conexion", "{\"online\":true}",true);      
-      Serial.println("connected to MQTT broker");
+      String topic = "infind/GRUPO2/ESP";
+      topic += ESP.getChipId();
+      topic += "/conexion";
       
+      client.publish(topic.c_str(), "{\"online\":true}", true);
+      Serial.println("connected to MQTT broker");
+
+      // MANU TIENE QUE MIRAR ESTO DE LA FOTA
       client.subscribe("infind/GRUPO2/OTA/mode");
       client.subscribe("infind/GRUPO2/OTA/update");
-      client.subscribe("infind/GRUPO2/led/cmd");
+
+      // Nos suscribimos a los topics necesarios
+      topic = "infind/GRUPO2/ESP";
+      topic += ESP.getChipId();
+      topic += "/config";
+      client.subscribe(topic.c_str());
+      Serial.println(topic.c_str());
+      topic = "infind/GRUPO2/ESP";
+      topic += ESP.getChipId();
+      topic += "/led/cmd";
+      client.subscribe(topic.c_str());
+      Serial.println(topic.c_str());
+      topic = "infind/GRUPO2/ESP";
+      topic += ESP.getChipId();
+      topic += "/switch/cmd";
+      client.subscribe(topic.c_str());
+      Serial.println(topic.c_str());
+      topic = "infind/GRUPO2/ESP";
+      topic += ESP.getChipId();
+      topic += "/FOTA";
+      client.subscribe(topic.c_str());
+      Serial.println(topic.c_str());
       
     } else {
       
@@ -424,22 +449,23 @@ void reconnect() {
 
 /* ---------------------------------- Pulsaciones ---------------------------------- */
 
+// Pulsación corta
 void pulsacionCorta(Button2& btn) {
   if (encendido == 1) {
     analogWrite(BUILTIN_LED, 100);
-    led=100;
+    led = 100;
     encendido = 0;
   } else {
     analogWrite(BUILTIN_LED, ledControl);
-    led=ledControl;
+    led = ledControl;
     encendido = 1;
   }
 }
 
 void pulsacionDoble(Button2& btn) {
   analogWrite(BUILTIN_LED, 0);
-  led=0;
-  ledControl=0;
+  led = 0;
+  ledControl = 0;
 }
 
 void pulsacionLarga(Button2& btn) {
@@ -468,18 +494,19 @@ void setup() {
 
   pinMode(BUILTIN_LED, OUTPUT);     // Initialize the BUILTIN_LED pin as an output
 
+  // Inicializamos EEPROM y actualizamos el valor de LED con el que está en la memoria FLASH
   EEPROM.begin(512);
-
   led = EEPROM.read(13);
+  
   Serial.println("");
   Serial.print("LED: ");
   Serial.println(led);
-  ledControl=0;
+  ledControl = 0;
   analogWriteRange(100);
   analogWrite(BUILTIN_LED, led); 
   
 
-  // Leemos el wifiStatus de la memoria
+  // Leemos el wifiStatus de la memoria FLASH
   wifiStatus = EEPROM.read(0);
   setup_wifi();
 
@@ -507,22 +534,22 @@ String serializa_JSON1 (struct registro_datos datos)
   StaticJsonDocument<300> jsonRoot;
   String jsonString;
  
-  jsonRoot["Uptime"]= datos.tiempo;
+  jsonRoot["Uptime"] = datos.tiempo;
 
-  jsonRoot["Vcc"]= datos.vcc;
+  jsonRoot["Vcc"] = datos.vcc;
   
-  JsonObject DHT11=jsonRoot.createNestedObject("DHT11");
+  JsonObject DHT11 = jsonRoot.createNestedObject("DHT11");
   DHT11["temp"] = datos.temp;
   DHT11["hum"] = datos.hum;
 
-  jsonRoot["LED"]= datos.led;
+  jsonRoot["LED"] = datos.led;
 
-  JsonObject Wifi=jsonRoot.createNestedObject("Wifi");
+  JsonObject Wifi = jsonRoot.createNestedObject("Wifi");
   Wifi["SSId"] = datos.ssid;
   Wifi["IP"] = datos.ip.toString();
   Wifi["RSSI"] = datos.rssi;
 
-  serializeJson(jsonRoot,jsonString);
+  serializeJson(jsonRoot, jsonString);
   return jsonString;
 }
 
@@ -548,7 +575,7 @@ void loop() {
     lastMsg = now;
 
     datos.tiempo = millis();
-    datos.vcc = (float)ESP.getVcc()/(float)1000;
+    datos.vcc = (float)ESP.getVcc() / (float)1000;
     datos.temp = temperature;
     datos.hum = humidity;
     datos.ssid = WiFi.SSID();
@@ -575,10 +602,10 @@ void loop() {
   
   }
 
-  if(otaMode==2){
-    if(millis() - lastTime >= (otaTime * 1000)){
+  if (otaMode == 2) {
+    if (millis() - lastTime >= (otaTime * 1000)){
       checkOTA();
-      lastTime=millis();
+      lastTime = millis();
     }
   }
   
