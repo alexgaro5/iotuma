@@ -35,7 +35,7 @@ struct registro_datos datos;
 
 DHTesp dht;
 
-int datosTime = 10; //Tiempo del ciclo de envio de datos
+int datosTime; //Tiempo del ciclo de envio de datos
 
 /* ---------------------------------- OTA ---------------------------------- */
 
@@ -88,8 +88,7 @@ Button2 button = Button2(BUTTON_PIN);
 
 /* ----------------------------------- LED ---------------------------------- */
 
-float ledTime = 10;
-float led, ledControl;
+float led, ledControl, ledTime;
 int encendido = 1;
 
 /* ------------------------------- MSG mostrar por pantalla ------------------------------ */
@@ -310,6 +309,10 @@ bool checkTopicConfig(char* topic, char* mensaje) {
       if((root.containsKey("envia")) && (!root["envia"].isNull())){
         //Cambiamos el tiempo de envio de los datos (s)
         datosTime = root["envia"];
+/*----------------------Guardo en la flash------------------------------------------*/
+        EEPROM.write(25, datosTime);
+        EEPROM.commit(); 
+/*----------------------------------------------------------------------------------*/
         Serial.print("envia: ");
         Serial.println(datosTime);   
       }          
@@ -317,6 +320,10 @@ bool checkTopicConfig(char* topic, char* mensaje) {
       if((root.containsKey("actualiza")) && (!root["actualiza"].isNull())){
         //Cambiamos el tiempo de comprobacion de actualizacion (min)
         otaTime = root["actualiza"];
+/*----------------------Guardo en la flash------------------------------------------*/
+        EEPROM.write(30, otaTime);
+        EEPROM.commit(); 
+/*----------------------------------------------------------------------------------*/
         Serial.print("actualiza: ");
         Serial.println(otaTime);
       }              
@@ -324,6 +331,10 @@ bool checkTopicConfig(char* topic, char* mensaje) {
       if((root.containsKey("velocidad")) && (!root["velocidad"].isNull())){
         //Cambiamos el tiempo de cambio del LED (ms)
         ledTime = root["velocidad"];
+/*----------------------Guardo en la flash------------------------------------------*/
+        EEPROM.write(20, ledTime);
+        EEPROM.commit(); 
+/*----------------------------------------------------------------------------------*/
         Serial.print("velocidad: ");
         Serial.println(ledTime);            
       }
@@ -500,6 +511,10 @@ void setup() {
   // Inicializamos EEPROM y actualizamos el valor de LED con el que está en la memoria FLASH
   EEPROM.begin(512);
   led = EEPROM.read(13);
+  ledTime = EEPROM.read(20);
+  datosTime=EEPROM.read(25);
+  otaTime=EEPROM.read(30);
+  //switch=EEPROM.read(35);
   
   Serial.println("");
   Serial.print("LED: ");
@@ -554,6 +569,47 @@ String serializa_JSON1 (struct registro_datos datos)
   return jsonString;
 }
 
+/*--------------------------Errores y Alertas----------------------------------*/
+String serializa_JSON2 (struct registro_datos datos)
+{
+  StaticJsonDocument<300> jsonRoot;
+  String jsonString;
+
+  jsonRoot["mensaje"]= "Las lecturas del sensor DHT11 son nulas.";
+  jsonRoot["ChipID"]= 123;
+
+  serializeJson(jsonRoot,jsonString);
+  return jsonString;
+}
+
+String serializa_JSON3 (struct registro_datos datos)
+{
+  StaticJsonDocument<300> jsonRoot;
+  String jsonString;
+
+  jsonRoot["mensaje"]= "El led tiene un valor negativo";
+  jsonRoot["ChipID"]= 1234;
+
+  serializeJson(jsonRoot,jsonString);
+  return jsonString;
+}
+
+/*
+String serializa_JSON4 (struct registro_datos datos)
+{
+  StaticJsonDocument<300> jsonRoot;
+  String jsonString;
+
+  jsonRoot["mensaje"]= "El switch esta recibiendo valores distintos de 0 o 1";
+  jsonRoot["ChipID"]= datos.chipID;
+
+  serializeJson(jsonRoot,jsonString);
+  return jsonString;
+}
+*/
+/*----------------------------------------------------------------------*/
+
+
 
 // the loop function runs over and over again forever
 void loop() {
@@ -583,9 +639,31 @@ void loop() {
     datos.ip = WiFi.localIP();
     datos.rssi = WiFi.RSSI();
     datos.led = 100 - led; //Lo invertimos para que 0 sea el mínimo y 100 el máximo
- 
+    // Falata poner el ChipID
+    
+/*----------------Errores y alertas--------------------------------------------*/
+    if(isnan((double)datos.temp) && isnan((double)datos.hum)){
+    client.publish("infind/GRUPOX/ESPX/errores", serializa_JSON2(datos).c_str());
+    Serial.println("ERROR EL SENSOR NO FUNCIONA");
+      }
+    if(datos.led == 0){
+    client.publish("infind/GRUPOX/ESPX/avisos", serializa_JSON3(datos).c_str());
+    Serial.println("ERROR EL LED NO FUNCIONA");
+      }
+    /*Falta la alerta del Switch
+
+    if(datos.switch !=0 || datos.switch != 1){
+    client.publish("infind/GRUPOX/ESPX/errores", serializa_JSON4(datos).c_str());
+    Serial.println("ERROR EL SWITCH NO FUNCIONA");
+      }
+*/
+/*------------------------------------------------------------------------------*/ 
     EEPROM.write(13, led);
     EEPROM.commit();  
+    /*
+    EEPROM.write(35, switch);
+    EEPROM.commit();  
+     */
 
     
     Serial.println("JSON generado con ArduinoJson:");
