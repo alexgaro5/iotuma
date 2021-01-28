@@ -35,6 +35,8 @@ struct registro_datos datos;
 
 DHTesp dht;
 
+int datosTime = 10; //Tiempo del ciclo de envio de datos
+
 /* ---------------------------------- OTA ---------------------------------- */
 
 // datos para actualización   >>>> SUSTITUIR IP <<<<<
@@ -86,7 +88,7 @@ Button2 button = Button2(BUTTON_PIN);
 
 /* ----------------------------------- LED ---------------------------------- */
 
-float timeLed = 10;
+float ledTime = 10;
 float led, ledControl;
 int encendido = 1;
 
@@ -143,8 +145,8 @@ void checkOTA() {
   ESPhttpUpdate.onError(error_OTA);
   ESPhttpUpdate.onProgress(progreso_OTA);
   ESPhttpUpdate.onEnd(final_OTA);
-  //switch(ESPhttpUpdate.update(OTA_URL, HTTP_OTA_VERSION, OTAfingerprint)) {
-  switch (ESPhttpUpdate.update(OTA_URL, HTTP_OTA_VERSION)) {
+  switch(ESPhttpUpdate.update(OTA_URL, HTTP_OTA_VERSION, OTAfingerprint)) {
+  //switch (ESPhttpUpdate.update(OTA_URL, HTTP_OTA_VERSION)) {
     case HTTP_UPDATE_FAILED:
       Serial.printf(" HTTP update failed: Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
       break;
@@ -221,9 +223,9 @@ String getParam(String name){
 /* ---------------------------------- MQTT ---------------------------------- */
 
 void callback(char* topic, byte* payload, unsigned int length);
-bool checkTopicOTAmode(char* topic, char* mensaje);
-bool checkTopicOTAupdate(char* topic, char* mensaje);
+bool checkTopicFOTA(char* topic, char* mensaje);
 bool checkTopicLedCmd(char* topic, char* mensaje);
+bool checkTopicConfig(char* topic, char* mensaje);
 
 void callback(char* topic, byte* payload, unsigned int length) {
 
@@ -240,11 +242,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   bool known = false;
 
-  if(otaMode=1){
-    if(!known)known = checkTopicOTAupdate(topic, mensaje);
-  }
-  if(!known)known = checkTopicOTAmode(topic, mensaje);
+  if(!known)known = checkTopicFOTA(topic, mensaje);
   if(!known)known = checkTopicLedCmd(topic, mensaje);
+  if(!known)known = checkTopicConfig(topic, mensaje);
   
   if (!known)
   {
@@ -255,12 +255,17 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 }
 
-/* -- infind/GRUPO2/OTA/mode -- */
+/* -- infind/GRUPO2/ESPX/FOTA -- */
 
-bool checkTopicOTAmode(char* topic, char* mensaje) {
+bool checkTopicFOTA(char* topic, char* mensaje) {
 
   // compruebo que es el topic adecuado
-  if (strcmp(topic, "infind/GRUPO2/OTA/mode") == 0) {
+  String topicStr = "infind/GRUPO2/ESP";
+  topicStr += ESP.getChipId();
+  topicStr += "/FOTA";
+  
+  if (strcmp(topic, topicStr.c_str()) == 0) {
+    
     StaticJsonDocument<512> root; // el tamaño tiene que ser adecuado para el mensaje
     // Deserialize the JSON document
     DeserializationError error = deserializeJson(root, mensaje);
@@ -269,63 +274,73 @@ bool checkTopicOTAmode(char* topic, char* mensaje) {
     if (error) {
       Serial.print("Error deserializeJson() failed: ");
       Serial.println(error.c_str());
-    }
-    else {
-      //buscamos que tenga el campo mode
-      if (root.containsKey("mode")) {
-        int valor = root["mode"];
-
-        //Si es el modo 2, tiene que indicar tambien el tiempo para que el cambio sea efectivo
-        if (valor == 2) {
-          if (root.containsKey("time")) {
-            otaTime = root["time"];
-            otaMode = valor;
-            Serial.print("Changed OTA mode to 2. Time between checkings ");
-            Serial.println(otaTime);
-          } else {
-            Serial.println("A time is needed to change OTA mode to 2 ");
-          }
-        } else if (valor >= 0 && valor < 2) {
-          otaMode = valor;
-          Serial.print("Changed OTA mode to ");
-          Serial.println(otaMode);
-        } else {
-          Serial.println("OTA mode can only be 0, 1 or 2 ");
-        }
+    }else{
+      if(root.containsKey("actualiza")){
+        checkOTA();
       }
-      else
-      {
-        Serial.print("Error : ");
-        Serial.println("\"mode\" key not found in JSON");
-      }
-    }
-
-    return true;
-  }
-
-  return false;
-}
-
-/* -- infind/GRUPO2/OTA/update -- */
-
-bool checkTopicOTAupdate(char* topic, char* mensaje) {
-
-  // compruebo que es el topic adecuado
-  if (strcmp(topic, "infind/GRUPO2/OTA/update") == 0) {
-    if (otaMode == 1) {
-      checkOTA();
-    }
-    
+    }    
     return true;
   }
   return false;
 }
 
-/* -- infind/GRUPO2/led/cmd -- */
+
+/* -- infind/GRUPO2/ESPX/config -- */
+
+bool checkTopicConfig(char* topic, char* mensaje) {
+
+  String topicStr = "infind/GRUPO2/ESP";
+  topicStr += ESP.getChipId();
+  topicStr += "/config";
+  
+  if (strcmp(topic, topicStr.c_str()) == 0) {
+    //Se recibe: {envia, actiualiza, velocidad}
+
+    StaticJsonDocument<512> root; // el tamaño tiene que ser adecuado para el mensaje
+    // Deserialize the JSON document
+    DeserializationError error = deserializeJson(root, mensaje);
+
+    // Compruebo si no hubo error
+    if (error) {
+      Serial.print("Error deserializeJson() failed: ");
+      Serial.println(error.c_str());
+    }else{
+      int aux;
+      //Comprobamos los campos
+      if((root.containsKey("envia")) && (!root["envia"].isNull())){
+        //Cambiamos el tiempo de envio de los datos (s)
+        datosTime = root["envia"];
+        Serial.print("envia: ");
+        Serial.println(datosTime);   
+      }          
+
+      if((root.containsKey("actualiza")) && (!root["actualiza"].isNull())){
+        //Cambiamos el tiempo de comprobacion de actualizacion (min)
+        otaTime = root["actualiza"];
+        Serial.print("actualiza: ");
+        Serial.println(otaTime);
+      }              
+
+      if((root.containsKey("velocidad")) && (!root["velocidad"].isNull())){
+        //Cambiamos el tiempo de cambio del LED (ms)
+        ledTime = root["velocidad"];
+        Serial.print("velocidad: ");
+        Serial.println(ledTime);            
+      }
+    }    
+    return true;
+  }
+  return false;
+}
+
+/* -- infind/GRUPO2/ESPX/led/cmd -- */
 
 bool checkTopicLedCmd(char* topic, char* mensaje) {
 
- if(strcmp(topic,"infind/GRUPO2/led/cmd") == 0) {
+  String topicStr = "infind/GRUPO2/ESP";
+  topicStr += ESP.getChipId();
+  topicStr += "/led/cmd";
+  if (strcmp(topic, topicStr.c_str()) == 0) {
     StaticJsonDocument<512> root; // el tamaño tiene que ser adecuado para el mensaje
     // Deserialize the JSON document
     DeserializationError error = deserializeJson(root, mensaje);
@@ -349,15 +364,6 @@ bool checkTopicLedCmd(char* topic, char* mensaje) {
       client.publish("infind/GRUPO2/led/status", msg);
 
       // Aumentamos o disminuimos la intensidad del led gradualmente
-
-      if (root.containsKey("timeLed"))  // comprobar si existe el campo/clave que estamos buscando
-      {
-
-        timeLed = root["timeLed"];
-        Serial.print("Mensaje OK, timeLed = ");
-        Serial.println(timeLed);
-
-      }
      
       while(ledControl != led){   
       if (ledControl < led) ledControl++;
@@ -365,7 +371,7 @@ bool checkTopicLedCmd(char* topic, char* mensaje) {
       analogWrite(BUILTIN_LED, ledControl);
       if (ledControl == 100) encendido = 0;
       else encendido = 1;            
-      delay(timeLed);
+      delay(ledTime);
       
      }
     }
@@ -393,7 +399,10 @@ void reconnect() {
 
     //last will
     byte willQoS = 2;
-    const char* willTopic = "infind/GRUPO2/conexion";
+    String willTopicStr = "infind/GRUPO2/ESP";
+    willTopicStr += ESP.getChipId();
+    willTopicStr += "/conexion";
+    const char* willTopic = willTopicStr.c_str();
     const char* willMessage = "{\"online\":false}";
     boolean willRetain = true;
     boolean cleanSession = true;
@@ -404,14 +413,9 @@ void reconnect() {
 
       String topic = "infind/GRUPO2/ESP";
       topic += ESP.getChipId();
-      topic += "/conexion";
-      
+      topic += "/conexion";      
       client.publish(topic.c_str(), "{\"online\":true}", true);
       Serial.println("connected to MQTT broker");
-
-      // MANU TIENE QUE MIRAR ESTO DE LA FOTA
-      client.subscribe("infind/GRUPO2/OTA/mode");
-      client.subscribe("infind/GRUPO2/OTA/update");
 
       // Nos suscribimos a los topics necesarios
       topic = "infind/GRUPO2/ESP";
@@ -434,6 +438,7 @@ void reconnect() {
       topic += "/FOTA";
       client.subscribe(topic.c_str());
       Serial.println(topic.c_str());
+      
       
     } else {
       
@@ -469,9 +474,7 @@ void pulsacionDoble(Button2& btn) {
 }
 
 void pulsacionLarga(Button2& btn) {
-  if(otaMode == 1){
     checkOTA();
-  }
 }
 
 void pulsacionTriple(Button2& btn) {
@@ -524,10 +527,8 @@ void setup() {
   button.setDoubleClickHandler(pulsacionDoble);
   button.setLongClickHandler(pulsacionLarga);
   button.setTripleClickHandler(pulsacionTriple);
-
-
+  
 }
-
 
 String serializa_JSON1 (struct registro_datos datos)
 {
@@ -565,7 +566,7 @@ void loop() {
   button.loop();
   // Aumentar a cinco minutos.
   unsigned long now = millis();
-  if (now - lastMsg > 10000) {
+  if (now - lastMsg > datosTime * 1000) {
 
     delay(dht.getMinimumSamplingPeriod());
 
@@ -582,28 +583,25 @@ void loop() {
     datos.ip = WiFi.localIP();
     datos.rssi = WiFi.RSSI();
     datos.led = 100 - led; //Lo invertimos para que 0 sea el mínimo y 100 el máximo
-
-
-    Serial.print("Guardo: ");
-    Serial.println(led);    
+ 
     EEPROM.write(13, led);
-    EEPROM.commit();
-
-    Serial.print("Leo: ");
-    Serial.println(EEPROM.read(13));
-    
+    EEPROM.commit();  
 
     
     Serial.println("JSON generado con ArduinoJson:");
     Serial.println(serializa_JSON1(datos));
 
-    client.publish("infind/GRUPO2/datos", serializa_JSON1(datos).c_str());
+    String topic = "infind/GRUPO2/ESP";
+    topic += ESP.getChipId();
+    topic += "/datos";
+
+    client.publish(topic.c_str(), serializa_JSON1(datos).c_str());
 
   
   }
 
   if (otaMode == 2) {
-    if (millis() - lastTime >= (otaTime * 1000)){
+    if (millis() - lastTime >= (otaTime * 1000 * 60)){
       checkOTA();
       lastTime = millis();
     }

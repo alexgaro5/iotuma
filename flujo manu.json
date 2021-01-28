@@ -1,0 +1,503 @@
+[
+    {
+        "id": "fe85bc46.0ac9e",
+        "type": "tab",
+        "label": "Flow 3",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "17734e19.49bf42",
+        "type": "mqtt out",
+        "z": "fe85bc46.0ac9e",
+        "name": "",
+        "topic": "infind/GRUPO2/ESP1122620/config",
+        "qos": "",
+        "retain": "",
+        "broker": "546e93a7.18443c",
+        "x": 680,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "ab27f35a.c150f",
+        "type": "function",
+        "z": "fe85bc46.0ac9e",
+        "name": "JSON config",
+        "func": "\nenvia = flow.get(\"datosTime\")\nactualiza = flow.get(\"otaTime\")\nvelocidad = flow.get(\"ledTime\")\n\nmsg.payload = {\n    envia:envia,\n    actualiza:actualiza,\n    velocidad:velocidad\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 390,
+        "y": 300,
+        "wires": [
+            [
+                "17734e19.49bf42"
+            ]
+        ]
+    },
+    {
+        "id": "88d11391.5c64b",
+        "type": "mqtt in",
+        "z": "fe85bc46.0ac9e",
+        "name": "",
+        "topic": "infind/GRUPO2/ESP1122620/FOTA",
+        "qos": "2",
+        "broker": "546e93a7.18443c",
+        "x": 220,
+        "y": 480,
+        "wires": [
+            [
+                "d04a6e1f.00066"
+            ]
+        ]
+    },
+    {
+        "id": "d04a6e1f.00066",
+        "type": "debug",
+        "z": "fe85bc46.0ac9e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "x": 490,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "d4a84e8a.95632",
+        "type": "mqtt out",
+        "z": "fe85bc46.0ac9e",
+        "name": "",
+        "topic": "infind/GRUPO2/ESP1122620/FOTA",
+        "qos": "",
+        "retain": "",
+        "broker": "546e93a7.18443c",
+        "x": 680,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "25f82d2e.1ea432",
+        "type": "mqtt in",
+        "z": "fe85bc46.0ac9e",
+        "name": "",
+        "topic": "infind/GRUPO2/ESP1122620/config",
+        "qos": "2",
+        "broker": "546e93a7.18443c",
+        "x": 220,
+        "y": 560,
+        "wires": [
+            [
+                "3b24a032.f8faf"
+            ]
+        ]
+    },
+    {
+        "id": "3b24a032.f8faf",
+        "type": "debug",
+        "z": "fe85bc46.0ac9e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "x": 510,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "22037fe4.4289a",
+        "type": "ui_button",
+        "z": "fe85bc46.0ac9e",
+        "name": "Boton actualizar",
+        "group": "245f2e4e.d2eec2",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Actualizar",
+        "tooltip": "Envía la configuración de modo y tiempo",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "date",
+        "topic": "",
+        "x": 160,
+        "y": 300,
+        "wires": [
+            [
+                "ab27f35a.c150f"
+            ]
+        ]
+    },
+    {
+        "id": "c24b5bc4.c47698",
+        "type": "function",
+        "z": "fe85bc46.0ac9e",
+        "name": "Store ledTime",
+        "func": "\nflow.set(\"ledTime\", msg.payload)\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 400,
+        "y": 220,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "3705a3c2.9b77ac",
+        "type": "ui_text_input",
+        "z": "fe85bc46.0ac9e",
+        "name": "TiempoLed",
+        "label": "Periodo entre cambios de led (ms)",
+        "tooltip": "",
+        "group": "245f2e4e.d2eec2",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "mode": "number",
+        "delay": 300,
+        "topic": "",
+        "x": 150,
+        "y": 220,
+        "wires": [
+            [
+                "c24b5bc4.c47698"
+            ]
+        ]
+    },
+    {
+        "id": "141c8006.36ecb",
+        "type": "ui_button",
+        "z": "fe85bc46.0ac9e",
+        "name": "Check updates",
+        "group": "245f2e4e.d2eec2",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Comprobar actualizaciones",
+        "tooltip": "Se manda un mensaje MQTT que indica al dispositivo que debe comprobar las actualizaciones disponibles",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "1",
+        "payloadType": "str",
+        "topic": "",
+        "x": 160,
+        "y": 380,
+        "wires": [
+            [
+                "87af72e1.76672"
+            ]
+        ]
+    },
+    {
+        "id": "a853286f.c921e8",
+        "type": "function",
+        "z": "fe85bc46.0ac9e",
+        "name": "Store otaTime",
+        "func": "\nflow.set(\"otaTime\", msg.payload)\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 400,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "a014857e.10c788",
+        "type": "ui_text_input",
+        "z": "fe85bc46.0ac9e",
+        "name": "TiempoOta",
+        "label": "Periodo de comprobación de actualizaciones (min)",
+        "tooltip": "",
+        "group": "245f2e4e.d2eec2",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "mode": "number",
+        "delay": 300,
+        "topic": "",
+        "x": 150,
+        "y": 160,
+        "wires": [
+            [
+                "a853286f.c921e8"
+            ]
+        ]
+    },
+    {
+        "id": "b0dfab71.7f2528",
+        "type": "function",
+        "z": "fe85bc46.0ac9e",
+        "name": "Store datosTime",
+        "func": "\nflow.set(\"datosTime\", msg.payload)\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 400,
+        "y": 100,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "11e76e03.46a912",
+        "type": "ui_text_input",
+        "z": "fe85bc46.0ac9e",
+        "name": "TiempoDatos",
+        "label": "Perido de envio de datos (s)",
+        "tooltip": "",
+        "group": "245f2e4e.d2eec2",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "mode": "number",
+        "delay": 300,
+        "topic": "",
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "b0dfab71.7f2528"
+            ]
+        ]
+    },
+    {
+        "id": "87af72e1.76672",
+        "type": "function",
+        "z": "fe85bc46.0ac9e",
+        "name": "JSON actualiza",
+        "func": "\nmsg.payload = {actualiza:1}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 400,
+        "y": 380,
+        "wires": [
+            [
+                "d4a84e8a.95632",
+                "fd8ad5f0.2d4c98"
+            ]
+        ]
+    },
+    {
+        "id": "fd8ad5f0.2d4c98",
+        "type": "debug",
+        "z": "fe85bc46.0ac9e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "x": 680,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "ac2e6b71.801a58",
+        "type": "mqtt out",
+        "z": "fe85bc46.0ac9e",
+        "name": "",
+        "topic": "infind/GRUPO2/led/cmd",
+        "qos": "2",
+        "retain": "",
+        "broker": "fc5c9554.5f0878",
+        "x": 570,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "8bda9d4d.89463",
+        "type": "ui_slider",
+        "z": "fe85bc46.0ac9e",
+        "name": "",
+        "label": "Luz led",
+        "tooltip": "",
+        "group": "d8782036.2d80a",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "outs": "end",
+        "topic": "",
+        "min": "0",
+        "max": "100",
+        "step": "1",
+        "x": 140,
+        "y": 660,
+        "wires": [
+            [
+                "66a58674.810818"
+            ]
+        ]
+    },
+    {
+        "id": "91d03b6c.b7ecd8",
+        "type": "function",
+        "z": "fe85bc46.0ac9e",
+        "name": "Creamos json",
+        "func": "\ncmd = flow.get(\"cmdLed\")\ntime = flow.get(\"timeLed\")\n\nmsg.payload = {level:cmd, timeLed: time}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 340,
+        "y": 720,
+        "wires": [
+            [
+                "ac2e6b71.801a58"
+            ]
+        ]
+    },
+    {
+        "id": "66a58674.810818",
+        "type": "function",
+        "z": "fe85bc46.0ac9e",
+        "name": "Store cmdLed",
+        "func": "\nflow.set(\"cmdLed\", msg.payload)\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 340,
+        "y": 660,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "17fd80ff.d9610f",
+        "type": "mqtt in",
+        "z": "fe85bc46.0ac9e",
+        "name": "",
+        "topic": "infind/GRUPO2/led/cmd",
+        "qos": "2",
+        "broker": "fc5c9554.5f0878",
+        "x": 210,
+        "y": 960,
+        "wires": [
+            [
+                "3fd7fe9d.dfa972"
+            ]
+        ]
+    },
+    {
+        "id": "3fd7fe9d.dfa972",
+        "type": "debug",
+        "z": "fe85bc46.0ac9e",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "x": 420,
+        "y": 960,
+        "wires": []
+    },
+    {
+        "id": "21c9a414.a5d32c",
+        "type": "ui_button",
+        "z": "fe85bc46.0ac9e",
+        "name": "Boton actualizar",
+        "group": "d8782036.2d80a",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Enviar info LED",
+        "tooltip": "Envía la configuración de LED",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "date",
+        "topic": "",
+        "x": 160,
+        "y": 720,
+        "wires": [
+            [
+                "91d03b6c.b7ecd8"
+            ]
+        ]
+    },
+    {
+        "id": "546e93a7.18443c",
+        "type": "mqtt-broker",
+        "z": "",
+        "name": "",
+        "broker": "iot.ac.uma.es",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "compatmode": true,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "245f2e4e.d2eec2",
+        "type": "ui_group",
+        "z": "",
+        "name": "Configuración de parámetros",
+        "tab": "237e06a9.3507fa",
+        "disp": true,
+        "width": "8",
+        "collapse": false
+    },
+    {
+        "id": "fc5c9554.5f0878",
+        "type": "mqtt-broker",
+        "z": "",
+        "name": "",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "compatmode": true,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "d8782036.2d80a",
+        "type": "ui_group",
+        "z": "",
+        "name": "Control LED",
+        "tab": "237e06a9.3507fa",
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "237e06a9.3507fa",
+        "type": "ui_tab",
+        "z": "",
+        "name": "Proyecto final",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    }
+]
