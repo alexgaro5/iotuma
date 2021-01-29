@@ -54,7 +54,6 @@ String OTAfingerprint("5d 56 09 5c 5f 7b a4 3f 01 b7 22 31 d3 a7 da a3 6e 10 2e 
   2 -> OTA cada X ms
 */
 
-int otaMode = 0;
 float otaTime = 0;
 float lastTime = 0;
 unsigned long lastMsg = 0;
@@ -136,7 +135,6 @@ void progreso_OTA(int x, int todo)
 void checkOTA() {
   Serial.println( "--------------------------" );
   Serial.println( "Comprobando actualización:" );
-  //Serial.print(HTTP_OTA_ADDRESS);Serial.print(":");Serial.print(HTTP_OTA_PORT);Serial.println(HTTP_OTA_PATH);
   Serial.println( "--------------------------" );
   ESPhttpUpdate.setLedPin(16, LOW);
   ESPhttpUpdate.onStart(inicio_OTA);
@@ -144,7 +142,6 @@ void checkOTA() {
   ESPhttpUpdate.onProgress(progreso_OTA);
   ESPhttpUpdate.onEnd(final_OTA);
   switch(ESPhttpUpdate.update(OTA_URL, HTTP_OTA_VERSION, OTAfingerprint)) {
-  //switch (ESPhttpUpdate.update(OTA_URL, HTTP_OTA_VERSION)) {
     case HTTP_UPDATE_FAILED:
       Serial.printf(" HTTP update failed: Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
       break;
@@ -460,7 +457,7 @@ void reconnect() {
     willTopicStr += ESP.getChipId();
     willTopicStr += "/conexion";
     const char* willTopic = willTopicStr.c_str();
-    const char* willMessage = "{\"online\":false}";
+    const char* willMessage = serializa_JSON_conexion(false).c_str();
     boolean willRetain = true;
     boolean cleanSession = true;
     
@@ -469,8 +466,8 @@ void reconnect() {
 
       String topic = "infind/GRUPO2/ESP";
       topic += ESP.getChipId();
-      topic += "/conexion";      
-      client.publish(topic.c_str(), "{\"online\":true}", true);
+      topic += "/conexion";
+      client.publish(topic.c_str(), serializa_JSON_conexion(true).c_str(), true);
       Serial.println("connected to MQTT broker");
 
       /* Nos suscribimos a los topics necesarios */
@@ -517,12 +514,12 @@ void reconnect() {
 /* El LED se apaga o se enciende al nivel establecido previamente */
 void pulsacionCorta(Button2& btn) {
   if (encendido == 1) {
-    analogWrite(LED_PIN, 100);
     led = 100;
+    analogWrite(LED_PIN, led);
     encendido = 0;
   } else {
-    analogWrite(LED_PIN, ledControl);
     led = ledControl;
+    analogWrite(LED_PIN, led);
     encendido = 1;
   }
 
@@ -537,13 +534,12 @@ void pulsacionCorta(Button2& btn) {
 void pulsacionDoble(Button2& btn) {
   analogWrite(LED_PIN, 0);
   led = 0;
-  ledControl = 0;
 
   /* Enviamos por mqtt el status del LED */
   String topic = "infind/GRUPO2/ESP";
   topic += ESP.getChipId();
   topic += "/led/status";
-  client.publish(topic.c_str(), serializa_JSON_status("led", 100 - led, "pulsador").c_str());
+  client.publish(topic.c_str(), serializa_JSON_status("led", ledControl, "pulsador").c_str());
 }
 
 /* Comprueba actualización disponible (FOTA) */
@@ -625,10 +621,8 @@ void setup() {
   client.setCallback(callback);
   dht.setup(5, DHTesp::DHT11);    // Connect DHT sensor to GPIO 5
 
-  /* Si otaMode == 0, se comprueba actualización (FOTA) al comenzar */
-  if (otaMode == 0) {
-    checkOTA();
-  }
+  /* Se comprueba actualización (FOTA) al comenzar */
+  checkOTA();
 
   /* Configuramos el botón */
   pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -684,8 +678,7 @@ String serializa_JSON_status(String actuador, float valor, String origen) {
 }
 
 /* Creamos el JSON para el topic errores y avisos */
-String serializa_JSON_error(String mensaje)
-{
+String serializa_JSON_error(String mensaje) {
   StaticJsonDocument<300> jsonRoot;
   String jsonString;
 
@@ -694,6 +687,21 @@ String serializa_JSON_error(String mensaje)
 
   jsonRoot["CHIPID"] = chipId;
   jsonRoot["mensaje"] = mensaje;
+
+  serializeJson(jsonRoot, jsonString);
+  return jsonString;
+}
+
+/* Creamos el JSON para el topic conexion */
+String serializa_JSON_conexion(bool estado) {
+  StaticJsonDocument<300> jsonRoot;
+  String jsonString;
+
+  String chipId = "ESP";
+  chipId += ESP.getChipId();
+
+  jsonRoot["CHIPID"] = chipId;
+  jsonRoot["online"] = estado;
 
   serializeJson(jsonRoot, jsonString);
   return jsonString;
@@ -741,9 +749,6 @@ void loop() {
       client.publish(topic.c_str(), serializa_JSON_error("Lecturas de DHT11 nulas.").c_str());
       Serial.println("ERROR EL SENSOR NO FUNCIONA");
     }
-    topic = "infind/GRUPO2/ESP";
-    topic += ESP.getChipId();
-    topic += "/avisos";
     if (datos.led < 0) {
       client.publish(topic.c_str(), serializa_JSON_error("Valor de LED negativo.").c_str());
       Serial.println("ERROR EL LED NO FUNCIONA");
@@ -770,11 +775,10 @@ void loop() {
   
   }
 
-  if (otaMode == 2) {
-    if (millis() - lastTime >= (otaTime * 1000 * 60)) {
-      checkOTA();
-      lastTime = millis();
-    }
+  if ((millis() - lastTime) > (otaTime * 60 * 1000)) {
+    checkOTA();
+    lastTime = millis();
   }
+
   
 }
