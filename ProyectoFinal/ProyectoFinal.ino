@@ -570,7 +570,8 @@ void setup() {
 
   /* Inicializamos EEPROM y actualizamos los valores con los de la memoria FLASH */
   EEPROM.begin(512);
-  if (isnan(led = EEPROM.read(13))) {
+  led = EEPROM.read(13)
+  if (isnan(led) || led < 0 || led > 100) {
     led = 50;             // Por defecto LED medio encendido
   }
   if (isnan(ledTime = EEPROM.read(20))) {
@@ -582,10 +583,12 @@ void setup() {
   if (isnan(otaTime = EEPROM.read(30))) {
     otaTime = 24 * 60;    // Por defecto 24 horas
   }
-  if (isnan(switchLed = EEPROM.read(35))) {
+  switchLed = EEPROM.read(35)
+  if (isnan(switchLed) || (switchLed != 0 && switchLED != 1)) {
     switchLed = 0;        // Por defecto SWITCH apagado
   }
-  if (isnan(wifiStatus = EEPROM.read(0))) {
+  wifiStatus = EEPROM.read(0)
+  if (isnan(wifiStatus) || (wifiStatus != 0 && wifiStatus != 1)) {
     wifiStatus = 0;       // Por defecto wifiStatus 0
   }
 
