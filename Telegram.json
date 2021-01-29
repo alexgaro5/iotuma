@@ -1,0 +1,919 @@
+[
+    {
+        "id": "5cb43f3a.731428",
+        "type": "tab",
+        "label": "TelegramFinal",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "24bf7c4a.f9303c",
+        "type": "debug",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 370,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "97457ff.4c88d",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Mensaje bienvenida",
+        "func": "if (msg.payload.content.substring(0, 1) != \"/\") {\n    msg.payload.content = \"Hola \" + msg.originalMessage.from.first_name + \", soy el bot de Pablo. Puedo responderte a estos comandos:\\n\" + \n    \"/start\\n\" + \n    \"/statusLED [ESP]\\n\" + \n    \"/statusSwitch [ESP]\\n\" + \n    \"/values [ESP] [number]\\n\" + \n    \"/changeLED [ESP] [value]\\n\" + \n    \"/changeSwitch [ESP] [value]\\n\" +\n    \"[ESP] es el chipId del la placa. Si queda vacío afectará a todas.\\n\" +\n    \"[number] es el número de valores a obtener.\\n\" +\n    \"[value] es el valor que se quiere asignar.\\n\" +\n    \"Para LED los valores pueden ir de 0 (apagado) a 100 (máxima intensidad).\\n\" +\n    \"Para Switch los valores pueden ser 0 (apagado) o 1 (encendido).\";\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 420,
+        "y": 180,
+        "wires": [
+            [
+                "decf97f9.97e8a",
+                "92995bf3.2bfce8"
+            ]
+        ]
+    },
+    {
+        "id": "480db8b0.170a08",
+        "type": "telegram receiver",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "bot": "bf6e839c.41b4b",
+        "saveDataDir": "",
+        "filterCommands": false,
+        "x": 160,
+        "y": 140,
+        "wires": [
+            [
+                "24bf7c4a.f9303c",
+                "97457ff.4c88d"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "46ac1a5b.8b4d94",
+        "type": "telegram command",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "command": "/start",
+        "bot": "bf6e839c.41b4b",
+        "strict": false,
+        "hasresponse": false,
+        "useRegex": false,
+        "x": 130,
+        "y": 200,
+        "wires": [
+            [
+                "97457ff.4c88d"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "decf97f9.97e8a",
+        "type": "telegram sender",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "bot": "bf6e839c.41b4b",
+        "x": 680,
+        "y": 180,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "92995bf3.2bfce8",
+        "type": "debug",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 650,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "bd6931c7.34b938",
+        "type": "comment",
+        "z": "5cb43f3a.731428",
+        "name": "Mensaje de bienvenida",
+        "info": "",
+        "x": 160,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "6afce04f.70678",
+        "type": "telegram command",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "command": "/statusLED",
+        "bot": "bf6e839c.41b4b",
+        "strict": false,
+        "hasresponse": false,
+        "useRegex": false,
+        "x": 140,
+        "y": 340,
+        "wires": [
+            [
+                "68440a63.e842e4"
+            ]
+        ]
+    },
+    {
+        "id": "9f2ed859.c13fb",
+        "type": "telegram command",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "command": "/values",
+        "bot": "bf6e839c.41b4b",
+        "strict": false,
+        "hasresponse": false,
+        "useRegex": false,
+        "x": 130,
+        "y": 700,
+        "wires": [
+            [
+                "285c4d3b.034882"
+            ]
+        ]
+    },
+    {
+        "id": "f653d666.14ab58",
+        "type": "telegram command",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "command": "/changeLED",
+        "bot": "bf6e839c.41b4b",
+        "strict": false,
+        "hasresponse": false,
+        "useRegex": false,
+        "x": 150,
+        "y": 920,
+        "wires": [
+            [
+                "7fa635a.e2dad4c"
+            ]
+        ]
+    },
+    {
+        "id": "1993475e.57cc99",
+        "type": "comment",
+        "z": "5cb43f3a.731428",
+        "name": "Estado de los actuadores",
+        "info": "",
+        "x": 170,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "9f0f5a60.d88db",
+        "type": "mongodb in",
+        "z": "5cb43f3a.731428",
+        "mongodb": "4a04b8f7.1904a8",
+        "name": "",
+        "collection": "",
+        "operation": "find",
+        "x": 450,
+        "y": 340,
+        "wires": [
+            [
+                "7def66a7.6637c"
+            ]
+        ]
+    },
+    {
+        "id": "68440a63.e842e4",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Último registro",
+        "func": "let msg_split = msg.originalMessage.text.split(\" \");\n\nmsg.collection = \"led\";\nmsg.limit = 1;\nmsg.sort = { \"date\": -1 };\nmsg.telegram = msg.payload;\n// msg.payload = {};\nmsg.payload = { \"CHIPID\": { \"$eq\": msg_split[1] } };\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 260,
+        "y": 420,
+        "wires": [
+            [
+                "9f0f5a60.d88db"
+            ]
+        ]
+    },
+    {
+        "id": "e0ef46f3.0d94",
+        "type": "telegram command",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "command": "/statusSwitch",
+        "bot": "bf6e839c.41b4b",
+        "strict": false,
+        "hasresponse": false,
+        "useRegex": false,
+        "x": 150,
+        "y": 480,
+        "wires": [
+            [
+                "f6035175.ae14c8"
+            ]
+        ]
+    },
+    {
+        "id": "7def66a7.6637c",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Mensaje",
+        "func": "var message = \"LED\" + msg.led + \" Status: \" + msg.payload[0].LEDs.Rojo;\n\nmsg.payload = msg.telegram;\nmsg.payload.content = message;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 560,
+        "y": 420,
+        "wires": [
+            [
+                "289e3cb1.1d4f4c"
+            ]
+        ]
+    },
+    {
+        "id": "289e3cb1.1d4f4c",
+        "type": "telegram sender",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "bot": "bf6e839c.41b4b",
+        "x": 780,
+        "y": 500,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "285c4d3b.034882",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Últimos registro",
+        "func": "let msg_split = msg.originalMessage.text.split(\" \");\n\nmsg.collection = \"datos\";\nmsg.limit = msg_split[2];\nmsg.sort = { \"date\": -1 };\nmsg.telegram = msg.payload;\n// msg.payload = {};\nmsg.payload = { \"CHIPID\": { \"$eq\": msg_split[1] } };\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 340,
+        "y": 700,
+        "wires": [
+            [
+                "57bfa91d.de72f8"
+            ]
+        ]
+    },
+    {
+        "id": "57bfa91d.de72f8",
+        "type": "mongodb in",
+        "z": "5cb43f3a.731428",
+        "mongodb": "4a04b8f7.1904a8",
+        "name": "",
+        "collection": "",
+        "operation": "find",
+        "x": 610,
+        "y": 700,
+        "wires": [
+            [
+                "1ef9bdf9.bb2bca",
+                "d88f83c4.5060f"
+            ]
+        ]
+    },
+    {
+        "id": "acec528e.f508",
+        "type": "comment",
+        "z": "5cb43f3a.731428",
+        "name": "Últimos valores de los sensores",
+        "info": "",
+        "x": 190,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "1ef9bdf9.bb2bca",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Mensaje valores",
+        "func": "var message = \"\";\n\nfor (let i = 0; i < msg.payload.length; i++) {\n    message += (i + 1) + \". \" + msg.payload[i].date;\n    message += \"\\n     Temperatura: \" + msg.payload[i].BME280.Temperatura;\n    message += \"\\n     Humedad: \" + msg.payload[i].BME280.Humedad;\n    message += \"\\n     Presión: \" + msg.payload[i].BME280.Presion + \"\\n\\n\";\n}\n\nmsg.payload = msg.telegram;\nmsg.payload.content = message;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 460,
+        "y": 760,
+        "wires": [
+            [
+                "bd3fe54a.11b06"
+            ]
+        ]
+    },
+    {
+        "id": "bd3fe54a.11b06",
+        "type": "telegram sender",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "bot": "bf6e839c.41b4b",
+        "x": 700,
+        "y": 760,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "2e76efe3.2f7198",
+        "type": "telegram command",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "command": "/changeSwitch",
+        "bot": "bf6e839c.41b4b",
+        "strict": false,
+        "hasresponse": false,
+        "useRegex": false,
+        "x": 160,
+        "y": 1000,
+        "wires": [
+            [
+                "a649b024.d66"
+            ]
+        ]
+    },
+    {
+        "id": "f7af35a3.e5b128",
+        "type": "comment",
+        "z": "5cb43f3a.731428",
+        "name": "Cambio en los actuadores",
+        "info": "",
+        "x": 170,
+        "y": 840,
+        "wires": []
+    },
+    {
+        "id": "d774c25a.02e158",
+        "type": "mqtt out",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "topic": "",
+        "qos": "2",
+        "retain": "",
+        "broker": "575f4bbd.8057a4",
+        "x": 570,
+        "y": 960,
+        "wires": []
+    },
+    {
+        "id": "7fa635a.e2dad4c",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Creación json",
+        "func": "let msg_split = msg.originalMessage.text.split(\" \");\n\nmsg.topic = \"infind/GRUPO2/\" + msg_split[1] + \"/led/cmd\";\nmsg.telegram = msg.payload;\nmsg.payload = { \"level\": msg_split[2] };\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 360,
+        "y": 920,
+        "wires": [
+            [
+                "b4020739.ff1638",
+                "d774c25a.02e158"
+            ]
+        ]
+    },
+    {
+        "id": "a49dea49.0c063",
+        "type": "telegram sender",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "bot": "bf6e839c.41b4b",
+        "x": 800,
+        "y": 960,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b4020739.ff1638",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Mensaje",
+        "func": "var message = \"LED Status updated: \" + msg.payload.level;\n\nmsg.payload = msg.telegram;\nmsg.payload.content = message;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 580,
+        "y": 880,
+        "wires": [
+            [
+                "a49dea49.0c063"
+            ]
+        ]
+    },
+    {
+        "id": "d88f83c4.5060f",
+        "type": "debug",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 790,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "bca0ef85.548d2",
+        "type": "comment",
+        "z": "5cb43f3a.731428",
+        "name": "Dashboard",
+        "info": "",
+        "x": 120,
+        "y": 1140,
+        "wires": []
+    },
+    {
+        "id": "ac04bb9c.542708",
+        "type": "ui_numeric",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "label": "Temperatura máxima",
+        "tooltip": "",
+        "group": "32ae869b.8eacf2",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "topic": "",
+        "format": "{{value}}",
+        "min": "20",
+        "max": "40",
+        "step": 1,
+        "x": 180,
+        "y": 1200,
+        "wires": [
+            [
+                "65c30244.62b8cc"
+            ]
+        ]
+    },
+    {
+        "id": "9714a59c.5f9908",
+        "type": "ui_numeric",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "label": "Temperatura mínima",
+        "tooltip": "",
+        "group": "32ae869b.8eacf2",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "topic": "",
+        "format": "{{value}}",
+        "min": "0",
+        "max": "20",
+        "step": 1,
+        "x": 180,
+        "y": 1260,
+        "wires": [
+            [
+                "b232ca10.a8c968"
+            ]
+        ]
+    },
+    {
+        "id": "f66178e7.33189",
+        "type": "ui_numeric",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "label": "Humedad máxima",
+        "tooltip": "",
+        "group": "32ae869b.8eacf2",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "topic": "",
+        "format": "{{value}}",
+        "min": "100",
+        "max": "200",
+        "step": 1,
+        "x": 170,
+        "y": 1320,
+        "wires": [
+            [
+                "e84a4285.6b15e8"
+            ]
+        ]
+    },
+    {
+        "id": "ffd248e8.a123c",
+        "type": "ui_numeric",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "label": "Humedad mínima",
+        "tooltip": "",
+        "group": "32ae869b.8eacf2",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "topic": "",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "100",
+        "step": 1,
+        "x": 170,
+        "y": 1380,
+        "wires": [
+            [
+                "45e9491f.e064c8"
+            ]
+        ]
+    },
+    {
+        "id": "64b1675f.adaac8",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Registros",
+        "func": "message = [];\n\nif (msg.payload.DHT11.temp > global.get(\"maxTemp\")) {\n    // msg.payload = \"Cuidado, temperatura demasiado elevada.\";\n    // return msg;\n    message.push(\"Temperatura demasiado elevada.\");\n} else if (msg.payload.DHT11.temp < global.get(\"minTemp\")) {\n    // msg.payload = \"Cuidado, temperatura demasiado baja.\";\n    // return msg;\n    message.push(\"Temperatura demasiado baja.\");\n}\n\nif (msg.payload.DHT11.hum > global.get(\"maxHum\")) {\n    // msg.payload = \"Cuidado, humedad demasiado elevada.\";\n    // return msg;\n    message.push(\"Humedad demasiado elevada.\");\n} else if (msg.payload.DHT11.hum < global.get(\"minHum\")) {\n    // msg.payload = \"Cuidado, humedad demasiado baja.\";\n    // return msg;\n    message.push(\"Humedad demasiado baja.\");\n}\n\nif (message.length > 0) {\n    msg.payload = message[0];\n    if (message.length > 1) {\n        msg.payload += \"\\n\" + message[1];\n    }\n    return msg;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 440,
+        "y": 1520,
+        "wires": [
+            [
+                "decf2bbe.70f5e"
+            ]
+        ]
+    },
+    {
+        "id": "2a259865.4b846",
+        "type": "mqtt in",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "topic": "infind/GRUPO2/+/datos",
+        "qos": "2",
+        "broker": "575f4bbd.8057a4",
+        "x": 180,
+        "y": 1460,
+        "wires": [
+            [
+                "27347b76.0e41dc"
+            ]
+        ]
+    },
+    {
+        "id": "65c30244.62b8cc",
+        "type": "change",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "maxTemp",
+                "pt": "global",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 460,
+        "y": 1200,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b232ca10.a8c968",
+        "type": "change",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "minTemp",
+                "pt": "global",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 450,
+        "y": 1260,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "e84a4285.6b15e8",
+        "type": "change",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "maxHum",
+                "pt": "global",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 430,
+        "y": 1320,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "45e9491f.e064c8",
+        "type": "change",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "minHum",
+                "pt": "global",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 430,
+        "y": 1380,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "27347b76.0e41dc",
+        "type": "json",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 450,
+        "y": 1460,
+        "wires": [
+            [
+                "64b1675f.adaac8",
+                "fc210c72.f2093"
+            ]
+        ]
+    },
+    {
+        "id": "decf2bbe.70f5e",
+        "type": "ui_toast",
+        "z": "5cb43f3a.731428",
+        "position": "top right",
+        "displayTime": "3",
+        "highlight": "",
+        "outputs": 0,
+        "ok": "OK",
+        "cancel": "",
+        "topic": "",
+        "name": "",
+        "x": 670,
+        "y": 1520,
+        "wires": []
+    },
+    {
+        "id": "fc210c72.f2093",
+        "type": "debug",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 630,
+        "y": 1460,
+        "wires": []
+    },
+    {
+        "id": "a649b024.d66",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Creación json",
+        "func": "let msg_split = msg.originalMessage.text.split(\" \");\n\nmsg.topic = \"infind/GRUPO2/\" + msg_split[1] + \"/switch/cmd\";\nmsg.telegram = msg.payload;\nmsg.payload = { \"level\": msg_split[2] };\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 360,
+        "y": 1000,
+        "wires": [
+            [
+                "d774c25a.02e158",
+                "105b518b.56ed2e"
+            ]
+        ]
+    },
+    {
+        "id": "105b518b.56ed2e",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Mensaje",
+        "func": "var message = \"Switch Status updated: \" + msg.payload.level;\n\nmsg.payload = msg.telegram;\nmsg.payload.content = message;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 580,
+        "y": 1040,
+        "wires": [
+            [
+                "a49dea49.0c063"
+            ]
+        ]
+    },
+    {
+        "id": "8da6263c.45e13",
+        "type": "mqtt in",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "topic": "infind/GRUPO2/+/+/status",
+        "qos": "2",
+        "broker": "575f4bbd.8057a4",
+        "x": 190,
+        "y": 1640,
+        "wires": [
+            [
+                "88ffa3a0.c9f4e8"
+            ]
+        ]
+    },
+    {
+        "id": "88ffa3a0.c9f4e8",
+        "type": "json",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 450,
+        "y": 1640,
+        "wires": [
+            [
+                "4c4c0bc2.a829bc"
+            ]
+        ]
+    },
+    {
+        "id": "4c4c0bc2.a829bc",
+        "type": "debug",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 630,
+        "y": 1640,
+        "wires": []
+    },
+    {
+        "id": "f6035175.ae14c8",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Último registro",
+        "func": "let msg_split = msg.originalMessage.text.split(\" \");\n\nmsg.collection = \"switch\";\nmsg.limit = 1;\nmsg.sort = { \"date\": -1 };\nmsg.telegram = msg.payload;\n// msg.payload = {};\nmsg.payload = { \"CHIPID\": { \"$eq\": msg_split[1] } };\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 260,
+        "y": 560,
+        "wires": [
+            [
+                "4d1ebbd5.e1143c"
+            ]
+        ]
+    },
+    {
+        "id": "4d1ebbd5.e1143c",
+        "type": "mongodb in",
+        "z": "5cb43f3a.731428",
+        "mongodb": "4a04b8f7.1904a8",
+        "name": "",
+        "collection": "",
+        "operation": "find",
+        "x": 450,
+        "y": 480,
+        "wires": [
+            [
+                "a54db209.aba4e8"
+            ]
+        ]
+    },
+    {
+        "id": "a54db209.aba4e8",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Mensaje",
+        "func": "var message = \"Switch\" + msg.led + \" Status: \" + msg.payload[0].LEDs.Rojo;\n\nmsg.payload = msg.telegram;\nmsg.payload.content = message;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 560,
+        "y": 560,
+        "wires": [
+            [
+                "289e3cb1.1d4f4c"
+            ]
+        ]
+    },
+    {
+        "id": "bf6e839c.41b4b",
+        "type": "telegram bot",
+        "z": "",
+        "botname": "Bot de Pablo",
+        "usernames": "",
+        "chatids": "",
+        "baseapiurl": "",
+        "updatemode": "polling",
+        "pollinterval": "300",
+        "usesocks": false,
+        "sockshost": "",
+        "socksport": "6667",
+        "socksusername": "anonymous",
+        "sockspassword": "",
+        "bothost": "",
+        "localbotport": "8443",
+        "publicbotport": "8443",
+        "privatekey": "",
+        "certificate": "",
+        "useselfsignedcertificate": false,
+        "sslterminated": false,
+        "verboselogging": false
+    },
+    {
+        "id": "4a04b8f7.1904a8",
+        "type": "mongodb",
+        "z": "",
+        "hostname": "127.0.0.1",
+        "port": "27017",
+        "db": "ejercicio",
+        "name": ""
+    },
+    {
+        "id": "575f4bbd.8057a4",
+        "type": "mqtt-broker",
+        "z": "",
+        "name": "",
+        "broker": "iot.ac.uma.es",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "compatmode": true,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": ""
+    },
+    {
+        "id": "32ae869b.8eacf2",
+        "type": "ui_group",
+        "z": "",
+        "name": "Ejercicio 1",
+        "tab": "9045ff4d.2fe1",
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "9045ff4d.2fe1",
+        "type": "ui_tab",
+        "z": "",
+        "name": "Evaluación",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    }
+]
