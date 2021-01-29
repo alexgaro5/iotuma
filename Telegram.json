@@ -125,7 +125,8 @@
         "wires": [
             [
                 "68440a63.e842e4"
-            ]
+            ],
+            []
         ]
     },
     {
@@ -143,7 +144,8 @@
         "wires": [
             [
                 "285c4d3b.034882"
-            ]
+            ],
+            []
         ]
     },
     {
@@ -161,7 +163,8 @@
         "wires": [
             [
                 "7fa635a.e2dad4c"
-            ]
+            ],
+            []
         ]
     },
     {
@@ -221,7 +224,8 @@
         "wires": [
             [
                 "f6035175.ae14c8"
-            ]
+            ],
+            []
         ]
     },
     {
@@ -338,7 +342,8 @@
         "wires": [
             [
                 "a649b024.d66"
-            ]
+            ],
+            []
         ]
     },
     {
@@ -538,7 +543,7 @@
         "type": "function",
         "z": "5cb43f3a.731428",
         "name": "Registros",
-        "func": "message = [];\n\nif (msg.payload.DHT11.temp > global.get(\"maxTemp\")) {\n    // msg.payload = \"Cuidado, temperatura demasiado elevada.\";\n    // return msg;\n    message.push(\"Temperatura demasiado elevada.\");\n} else if (msg.payload.DHT11.temp < global.get(\"minTemp\")) {\n    // msg.payload = \"Cuidado, temperatura demasiado baja.\";\n    // return msg;\n    message.push(\"Temperatura demasiado baja.\");\n}\n\nif (msg.payload.DHT11.hum > global.get(\"maxHum\")) {\n    // msg.payload = \"Cuidado, humedad demasiado elevada.\";\n    // return msg;\n    message.push(\"Humedad demasiado elevada.\");\n} else if (msg.payload.DHT11.hum < global.get(\"minHum\")) {\n    // msg.payload = \"Cuidado, humedad demasiado baja.\";\n    // return msg;\n    message.push(\"Humedad demasiado baja.\");\n}\n\nif (message.length > 0) {\n    msg.payload = message[0];\n    if (message.length > 1) {\n        msg.payload += \"\\n\" + message[1];\n    }\n    return msg;\n}\n",
+        "func": "message = [];\nmessage.push(msg.payload.CHIPID);\n\nif (msg.payload.DHT11.temp > global.get(\"maxTemp\")) {\n    // msg.payload = \"Cuidado, temperatura demasiado elevada.\";\n    // return msg;\n    message.push(\"Temperatura demasiado elevada.\");\n} else if (msg.payload.DHT11.temp < global.get(\"minTemp\")) {\n    // msg.payload = \"Cuidado, temperatura demasiado baja.\";\n    // return msg;\n    message.push(\"Temperatura demasiado baja.\");\n}\n\nif (msg.payload.DHT11.hum > global.get(\"maxHum\")) {\n    // msg.payload = \"Cuidado, humedad demasiado elevada.\";\n    // return msg;\n    message.push(\"Humedad demasiado elevada.\");\n} else if (msg.payload.DHT11.hum < global.get(\"minHum\")) {\n    // msg.payload = \"Cuidado, humedad demasiado baja.\";\n    // return msg;\n    message.push(\"Humedad demasiado baja.\");\n}\n\nif (message.length > 0) {\n    msg.payload = message[0];\n    if (message.length > 1) {\n        msg.payload += \"\\n\" + message[1];\n    }\n    return msg;\n}\n",
         "outputs": 1,
         "noerr": 0,
         "x": 440,
@@ -703,7 +708,7 @@
         "type": "debug",
         "z": "5cb43f3a.731428",
         "name": "",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
