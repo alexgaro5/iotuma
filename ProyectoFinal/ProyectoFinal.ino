@@ -40,19 +40,12 @@ int datosTime; // Tiempo del ciclo de envio de datos
 
 /* ---------------------------------- OTA ---------------------------------- */
 
-// datos para actualización   >>>> SUSTITUIR IP <<<<<
-//#define HTTP_OTA_ADDRESS      F("192.168.0.193")       // Address of OTA update server
-#define HTTP_OTA_ADDRESS      F("iot.ac.uma.es")       // Address of uma
-#define HTTP_OTA_PATH         F("/esp8266-ota/update") // Path to update firmware
-#define HTTP_OTA_PORT         1880                     // Port of update server
-// Name of firmware
-#define OTA_URL "https://iot.ac.uma.es:1880/esp8266-ota/update"// Address of OTA update server
-//#define OTA_URL "http://192.168.0.193:1880/esp8266-ota/update"// Address of OTA update server
-
-#define HTTP_OTA_VERSION      String(__FILE__).substring(String(__FILE__).lastIndexOf('\\') + 1) + ".nodemcu"
-String OTAfingerprint("5d 56 09 5c 5f 7b a4 3f 01 b7 22 31 d3 a7 da a3 6e 10 2e 60"); // sustituir valor
-
-//MAC D8:F1:5B:11:21:3C
+#define HTTP_OTA_ADDRESS    F("iot.ac.uma.es")       // Address of uma
+#define HTTP_OTA_PATH       F("/esp8266-ota/update") // Path to update firmware
+#define HTTP_OTA_PORT       1880                     // Port of update server
+#define OTA_URL             "https://iot.ac.uma.es:1880/esp8266-ota/update" // Address of OTA update server
+#define HTTP_OTA_VERSION    String(__FILE__).substring(String(__FILE__).lastIndexOf('\\') + 1) + ".nodemcu"
+String OTAfingerprint("5d 56 09 5c 5f 7b a4 3f 01 b7 22 31 d3 a7 da a3 6e 10 2e 60");
 
 /*
   Modos de OTA:
@@ -88,6 +81,9 @@ const char* mqtt_server = "iot.ac.uma.es";
 Button2 button = Button2(BUTTON_PIN);
 
 /* ------------------------------ LED y SWITCH ------------------------------ */
+
+#define LED_PIN     2
+#define SWITCH_PIN  16
 
 float led, ledControl, ledTime;
 int encendido = 1;
@@ -382,7 +378,7 @@ bool checkTopicLedCmd(char* topic, char* mensaje) {
       while (ledControl != led) {   
         if (ledControl < led) ledControl++;
         else ledControl--;
-        analogWrite(BUILTIN_LED, ledControl);
+        analogWrite(LED_PIN, ledControl);
         if (ledControl == 100) encendido = 0;
         else encendido = 1;            
         delay(ledTime);
@@ -430,9 +426,9 @@ bool checkTopicSwitchCmd(char* topic, char* mensaje) {
 
       /* Si switchLed == 1 encendemos el SWITCH, si es 0 lo apagamos */
       if (switchLed == 1) {
-        digitalWrite(16, LOW);
+        digitalWrite(SWITCH_PIN, LOW);
       } else {
-        digitalWrite(16, HIGH);
+        digitalWrite(SWITCH_PIN, HIGH);
       }
 
     }
@@ -521,11 +517,11 @@ void reconnect() {
 /* El LED se apaga o se enciende al nivel establecido previamente */
 void pulsacionCorta(Button2& btn) {
   if (encendido == 1) {
-    analogWrite(BUILTIN_LED, 100);
+    analogWrite(LED_PIN, 100);
     led = 100;
     encendido = 0;
   } else {
-    analogWrite(BUILTIN_LED, ledControl);
+    analogWrite(LED_PIN, ledControl);
     led = ledControl;
     encendido = 1;
   }
@@ -539,7 +535,7 @@ void pulsacionCorta(Button2& btn) {
 
 /* El LED se enciende al nivel máximo */
 void pulsacionDoble(Button2& btn) {
-  analogWrite(BUILTIN_LED, 0);
+  analogWrite(LED_PIN, 0);
   led = 0;
   ledControl = 0;
 
@@ -573,37 +569,56 @@ void setup() {
   Serial.begin(115200);
 
   /* Inicializamos el LED y el SWITCH */
-  pinMode(BUILTIN_LED, OUTPUT);   // BUILTIN_LED = 2
-  pinMode(16, OUTPUT);
-  // digitalWrite(16, HIGH);
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(SWITCH_PIN, OUTPUT);
 
   /* Inicializamos EEPROM y actualizamos los valores con los de la memoria FLASH */
   EEPROM.begin(512);
-  led = EEPROM.read(13);
-  ledTime = EEPROM.read(20);
-  datosTime = EEPROM.read(25);
-  otaTime = EEPROM.read(30);
-  switchLed = EEPROM.read(35);
+  if (isnan(led = EEPROM.read(13))) {
+    led = 50;             // Por defecto LED medio encendido
+  }
+  if (isnan(ledTime = EEPROM.read(20))) {
+    ledTime = 10;         // Por defecto velocidad 10 ms
+  }
+  if (isnan(datosTime = EEPROM.read(25))) {
+    datosTime = 5 * 60;   // Por defecto 5 minutos
+  }
+  if (isnan(otaTime = EEPROM.read(30))) {
+    otaTime = 24 * 60;    // Por defecto 24 horas
+  }
+  if (isnan(switchLed = EEPROM.read(35))) {
+    switchLed = 0;        // Por defecto SWITCH apagado
+  }
+  if (isnan(wifiStatus = EEPROM.read(0))) {
+    wifiStatus = 0;       // Por defecto wifiStatus 0
+  }
 
-  /* Leemos el valor en la memoria para el LED */
-  Serial.println("");
-  Serial.print("LED: ");
+  /* Mostramos el valor inicial para el LED */
+  Serial.print("\nLED: ");
   Serial.println(100 - led);
   ledControl = led;
   analogWriteRange(100);
-  analogWrite(BUILTIN_LED, led); 
+  analogWrite(LED_PIN, led); 
 
-  /* Leemos el valor en la memoria para el SWITCH */
+  /* Mostramos el valor inicial para el SWITCH */
   Serial.print("Switch: ");
   Serial.println(switchLed);
   if (switchLed == 1) {
-    digitalWrite(16, LOW); 
+    digitalWrite(SWITCH_PIN, LOW); 
   } else {
-    digitalWrite(16, HIGH);
+    digitalWrite(SWITCH_PIN, HIGH);
   }
+
+  /* Mostramos el valor inicial para la velocidad del LED */
+  Serial.print("Velocidad del LED (ms): ");
+  Serial.println(ledTime);
+
+  /* Mostramos el valor inicial para el envio de los datos */
+  Serial.print("Tiempo entre envio de datos: ");
+  Serial.println(datosTime);
   
   /* Leemos el wifiStatus de la memoria FLASH */
-  wifiStatus = EEPROM.read(0);
+  // wifiStatus = EEPROM.read(0);
   setup_wifi();
 
   client.setServer(mqtt_server, 1883);
@@ -625,7 +640,7 @@ void setup() {
 }
 
 /* Creamos el JSON para el topic datos */
-String serializa_JSON_datos (struct registro_datos datos) {
+String serializa_JSON_datos(struct registro_datos datos) {
   StaticJsonDocument<300> jsonRoot;
   String jsonString;
 
@@ -653,7 +668,7 @@ String serializa_JSON_datos (struct registro_datos datos) {
 }
 
 /* Creamos el JSON para el topic status */
-String serializa_JSON_status (String actuador, float valor, String origen) {
+String serializa_JSON_status(String actuador, float valor, String origen) {
   StaticJsonDocument<300> jsonRoot;
   String jsonString;
 
@@ -668,8 +683,8 @@ String serializa_JSON_status (String actuador, float valor, String origen) {
   return jsonString;
 }
 
-/*--------------------------Errores y Alertas----------------------------------*/
-String serializa_JSON2 (struct registro_datos datos)
+/* Creamos el JSON para el topic errores y avisos */
+String serializa_JSON_error(String mensaje)
 {
   StaticJsonDocument<300> jsonRoot;
   String jsonString;
@@ -678,48 +693,13 @@ String serializa_JSON2 (struct registro_datos datos)
   chipId += ESP.getChipId();
 
   jsonRoot["CHIPID"] = chipId;
-  jsonRoot["mensaje"] = "Las lecturas del sensor DHT11 son nulas.";
+  jsonRoot["mensaje"] = mensaje;
 
   serializeJson(jsonRoot, jsonString);
   return jsonString;
 }
 
-String serializa_JSON3 (struct registro_datos datos)
-{
-  StaticJsonDocument<300> jsonRoot;
-  String jsonString;
-
-  String chipId = "ESP";
-  chipId += ESP.getChipId();
-
-  jsonRoot["CHIPID"] = chipId;
-  jsonRoot["mensaje"] = "El led tiene un valor negativo";
-
-  serializeJson(jsonRoot, jsonString);
-  return jsonString;
-}
-
-
-String serializa_JSON4 (struct registro_datos datos)
-{
-  StaticJsonDocument<300> jsonRoot;
-  String jsonString;
-
-  String chipId = "ESP";
-  chipId += ESP.getChipId();
-
-  jsonRoot["CHIPID"] = chipId;
-  jsonRoot["mensaje"] = "El switch esta recibiendo valores distintos de 0 o 1";
-
-  serializeJson(jsonRoot,jsonString);
-  return jsonString;
-}
-
-/*----------------------------------------------------------------------*/
-
-
-
-// the loop function runs over and over again forever
+/* The loop function runs over and over again forever */
 void loop() {
 
   if (!client.connected()) {
@@ -729,10 +709,9 @@ void loop() {
 
   button.loop();
 
-  // Aumentar a cinco minutos.
+  /* Enviamos los datos segun el tiempo de datosTime */
   unsigned long now = millis();
-  if (now - lastMsg > 60 * 1000) {
-  //if (now - lastMsg > datosTime * 1000) {
+  if (now - lastMsg > datosTime * 1000) {
 
     /* Cogemos los datos del DHT11 */
     delay(dht.getMinimumSamplingPeriod());
@@ -759,25 +738,25 @@ void loop() {
     topic += ESP.getChipId();
     topic += "/errores";
     if (isnan((double)datos.temp) && isnan((double)datos.hum)) {
-      client.publish(topic.c_str(), serializa_JSON2(datos).c_str());
+      client.publish(topic.c_str(), serializa_JSON_error("Lecturas de DHT11 nulas.").c_str());
       Serial.println("ERROR EL SENSOR NO FUNCIONA");
-    }
-    if (datos.switchLed != 0 && datos.switchLed != 1) {
-      client.publish(topic.c_str(), serializa_JSON4(datos).c_str());
-      Serial.println("ERROR EL SWITCH NO FUNCIONA");
     }
     topic = "infind/GRUPO2/ESP";
     topic += ESP.getChipId();
     topic += "/avisos";
     if (datos.led < 0) {
-      client.publish(topic.c_str(), serializa_JSON3(datos).c_str());
+      client.publish(topic.c_str(), serializa_JSON_error("Valor de LED negativo.").c_str());
       Serial.println("ERROR EL LED NO FUNCIONA");
+    }
+    if (datos.switchLed != 0 && datos.switchLed != 1) {
+      client.publish(topic.c_str(), serializa_JSON_error("Valor de SWITCH distinto de 0 y 1.").c_str());
+      Serial.println("ERROR EL SWITCH NO FUNCIONA");
     }
 /*------------------------------------------------------------------------------*/ 
     
     /* Guardamos en memoria el valor del LED y del SWITCH */
     EEPROM.write(13, led);
-    EEPROM.commit();  
+    EEPROM.commit();
     EEPROM.write(35, switchLed);
     EEPROM.commit();  
 
