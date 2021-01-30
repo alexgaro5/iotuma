@@ -613,7 +613,7 @@ void setup() {
   Serial.println(ledTime);
 
   /* Mostramos el valor inicial para el envio de los datos */
-  Serial.print("Tiempo entre envio de datos: ");
+  Serial.print("Tiempo entre envio de datos (s): ");
   Serial.println(datosTime);
   
   /* Leemos el wifiStatus de la memoria FLASH */
