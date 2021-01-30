@@ -355,7 +355,7 @@ bool checkTopicLedCmd(char* topic, char* mensaje) {
       Serial.print("Error deserializeJson() failed: ");
       Serial.println(error.c_str());
     }
-    else if(root.containsKey("level"))  // comprobar si existe el campo/clave que estamos buscando
+    else if(root.containsKey("level") && (!root["level"].isNull()))  // comprobar si existe el campo/clave que estamos buscando
     {
       float valor = root["level"];
       Serial.print("Mensaje OK, level = ");
