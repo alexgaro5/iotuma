@@ -1,0 +1,478 @@
+[
+    {
+        "id": "83f81237.9f40b",
+        "type": "tab",
+        "label": "BBDD",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "5659025d.afbd6c",
+        "type": "mqtt in",
+        "z": "83f81237.9f40b",
+        "name": "",
+        "topic": "infind/GRUPO2/+/led/status",
+        "qos": "2",
+        "broker": "416b78bf.3cc358",
+        "x": 300,
+        "y": 140,
+        "wires": [
+            [
+                "bb7b7522.adaf58"
+            ]
+        ]
+    },
+    {
+        "id": "e8b1667a.378838",
+        "type": "comment",
+        "z": "83f81237.9f40b",
+        "name": "BBDD",
+        "info": "",
+        "x": 210,
+        "y": 85,
+        "wires": []
+    },
+    {
+        "id": "ba41da09.9980e8",
+        "type": "mongodb out",
+        "z": "83f81237.9f40b",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "ledG2_prueba",
+        "payonly": true,
+        "upsert": false,
+        "multi": false,
+        "operation": "store",
+        "x": 1140,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "f27dabc.9f77558",
+        "type": "mqtt in",
+        "z": "83f81237.9f40b",
+        "name": "",
+        "topic": "infind/GRUPO2/+/switch/status",
+        "qos": "2",
+        "broker": "416b78bf.3cc358",
+        "x": 310,
+        "y": 220,
+        "wires": [
+            [
+                "d0c732b4.1ac23"
+            ]
+        ]
+    },
+    {
+        "id": "23c4cf2e.21658",
+        "type": "mongodb out",
+        "z": "83f81237.9f40b",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "switchG2_prueba",
+        "payonly": true,
+        "upsert": false,
+        "multi": false,
+        "operation": "store",
+        "x": 1150,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "82397b5e.32b7e8",
+        "type": "mqtt in",
+        "z": "83f81237.9f40b",
+        "name": "",
+        "topic": "infind/GRUPO2/+/errores",
+        "qos": "2",
+        "broker": "416b78bf.3cc358",
+        "x": 290,
+        "y": 300,
+        "wires": [
+            [
+                "ed797e65.85ce7"
+            ]
+        ]
+    },
+    {
+        "id": "5c638dfb.e06f14",
+        "type": "mongodb out",
+        "z": "83f81237.9f40b",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "errorG2_prueba",
+        "payonly": true,
+        "upsert": false,
+        "multi": false,
+        "operation": "store",
+        "x": 1140,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "a7c9def3.7ec4f",
+        "type": "mqtt in",
+        "z": "83f81237.9f40b",
+        "name": "",
+        "topic": "infind/GRUPO2/+/datos",
+        "qos": "2",
+        "broker": "416b78bf.3cc358",
+        "x": 280,
+        "y": 380,
+        "wires": [
+            [
+                "849dc5.69b98238"
+            ]
+        ]
+    },
+    {
+        "id": "ec28062f.1829a8",
+        "type": "mongodb out",
+        "z": "83f81237.9f40b",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "datosG2_prueba",
+        "payonly": true,
+        "upsert": false,
+        "multi": false,
+        "operation": "store",
+        "x": 1150,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "8230d794.202428",
+        "type": "mqtt in",
+        "z": "83f81237.9f40b",
+        "name": "",
+        "topic": "infind/GRUPO2/+/conexion",
+        "qos": "2",
+        "broker": "416b78bf.3cc358",
+        "x": 290,
+        "y": 540,
+        "wires": [
+            [
+                "399f2120.296dfe"
+            ]
+        ]
+    },
+    {
+        "id": "7be6da2c.809294",
+        "type": "mongodb out",
+        "z": "83f81237.9f40b",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "conexionG2_prueba",
+        "payonly": true,
+        "upsert": false,
+        "multi": false,
+        "operation": "store",
+        "x": 1160,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "51a92f51.ad13",
+        "type": "function",
+        "z": "83f81237.9f40b",
+        "name": "Poner fecha",
+        "func": "msg.payload.date = new Date();\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 870,
+        "y": 140,
+        "wires": [
+            [
+                "ba41da09.9980e8"
+            ]
+        ]
+    },
+    {
+        "id": "bb7b7522.adaf58",
+        "type": "json",
+        "z": "83f81237.9f40b",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 550,
+        "y": 140,
+        "wires": [
+            [
+                "5d02eda5.12d1c4"
+            ]
+        ]
+    },
+    {
+        "id": "3249c7b2.058738",
+        "type": "function",
+        "z": "83f81237.9f40b",
+        "name": "Poner fecha",
+        "func": "msg.payload.date = new Date();\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 870,
+        "y": 220,
+        "wires": [
+            [
+                "23c4cf2e.21658"
+            ]
+        ]
+    },
+    {
+        "id": "d0c732b4.1ac23",
+        "type": "json",
+        "z": "83f81237.9f40b",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 550,
+        "y": 220,
+        "wires": [
+            [
+                "feecb734.e3a6e8"
+            ]
+        ]
+    },
+    {
+        "id": "15f75698.e4f679",
+        "type": "function",
+        "z": "83f81237.9f40b",
+        "name": "Poner fecha",
+        "func": "msg.payload.date = new Date();\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 870,
+        "y": 300,
+        "wires": [
+            [
+                "5c638dfb.e06f14"
+            ]
+        ]
+    },
+    {
+        "id": "ed797e65.85ce7",
+        "type": "json",
+        "z": "83f81237.9f40b",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 550,
+        "y": 300,
+        "wires": [
+            [
+                "bffbe838.6bcad8"
+            ]
+        ]
+    },
+    {
+        "id": "fc88def.7dea32",
+        "type": "function",
+        "z": "83f81237.9f40b",
+        "name": "Poner fecha",
+        "func": "msg.payload.date = new Date();\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 870,
+        "y": 380,
+        "wires": [
+            [
+                "ec28062f.1829a8"
+            ]
+        ]
+    },
+    {
+        "id": "849dc5.69b98238",
+        "type": "json",
+        "z": "83f81237.9f40b",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 550,
+        "y": 380,
+        "wires": [
+            [
+                "5cfa423c.7d80dc"
+            ]
+        ]
+    },
+    {
+        "id": "b6aa6174.16439",
+        "type": "function",
+        "z": "83f81237.9f40b",
+        "name": "Poner fecha",
+        "func": "msg.payload.date = new Date();\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 870,
+        "y": 540,
+        "wires": [
+            [
+                "7be6da2c.809294"
+            ]
+        ]
+    },
+    {
+        "id": "399f2120.296dfe",
+        "type": "json",
+        "z": "83f81237.9f40b",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 550,
+        "y": 540,
+        "wires": [
+            [
+                "f754e828.b31288"
+            ]
+        ]
+    },
+    {
+        "id": "5d02eda5.12d1c4",
+        "type": "function",
+        "z": "83f81237.9f40b",
+        "name": "WhiteList",
+        "func": "if(msg.payload.CHIPID === \"ESP1122620\" || msg.payload.CHIPID === \"ESP833748\"  || msg.payload.CHIPID === \"ESP1127184\" || msg.payload.CHIPID === \"ESP455863\"){\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 700,
+        "y": 140,
+        "wires": [
+            [
+                "51a92f51.ad13"
+            ]
+        ]
+    },
+    {
+        "id": "feecb734.e3a6e8",
+        "type": "function",
+        "z": "83f81237.9f40b",
+        "name": "WhiteList",
+        "func": "if(msg.payload.CHIPID === \"ESP1122620\" || msg.payload.CHIPID === \"ESP833748\"  || msg.payload.CHIPID === \"ESP1127184\" || msg.payload.CHIPID === \"ESP455863\"){\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 700,
+        "y": 220,
+        "wires": [
+            [
+                "3249c7b2.058738"
+            ]
+        ]
+    },
+    {
+        "id": "bffbe838.6bcad8",
+        "type": "function",
+        "z": "83f81237.9f40b",
+        "name": "WhiteList",
+        "func": "if(msg.payload.CHIPID === \"ESP1122620\" || msg.payload.CHIPID === \"ESP833748\"  || msg.payload.CHIPID === \"ESP1127184\" || msg.payload.CHIPID === \"ESP455863\"){\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 700,
+        "y": 300,
+        "wires": [
+            [
+                "15f75698.e4f679"
+            ]
+        ]
+    },
+    {
+        "id": "5cfa423c.7d80dc",
+        "type": "function",
+        "z": "83f81237.9f40b",
+        "name": "WhiteList",
+        "func": "if(msg.payload.CHIPID === \"ESP1122620\" || msg.payload.CHIPID === \"ESP833748\"  || msg.payload.CHIPID === \"ESP1127184\" || msg.payload.CHIPID === \"ESP455863\"){\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 700,
+        "y": 380,
+        "wires": [
+            [
+                "fc88def.7dea32",
+                "f97f12a5.aa5ba"
+            ]
+        ]
+    },
+    {
+        "id": "f754e828.b31288",
+        "type": "function",
+        "z": "83f81237.9f40b",
+        "name": "WhiteList",
+        "func": "if(msg.payload.CHIPID === \"ESP1122620\" || msg.payload.CHIPID === \"ESP833748\"  || msg.payload.CHIPID === \"ESP1127184\" || msg.payload.CHIPID === \"ESP455863\"){\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 700,
+        "y": 540,
+        "wires": [
+            [
+                "b6aa6174.16439"
+            ]
+        ]
+    },
+    {
+        "id": "f97f12a5.aa5ba",
+        "type": "function",
+        "z": "83f81237.9f40b",
+        "name": "Registros",
+        "func": "message = [];\n\nif (msg.payload.DHT11.temp > global.get(\"maxTemp\")) {\n    message.push(\"Temperatura demasiado elevada.\");\n} else if (msg.payload.DHT11.temp < global.get(\"minTemp\")) {\n    message.push(\"Temperatura demasiado baja.\");\n}\n\nif (msg.payload.DHT11.hum > global.get(\"maxHum\")) {\n    message.push(\"Humedad demasiado elevada.\");\n} else if (msg.payload.DHT11.hum < global.get(\"minHum\")) {\n    message.push(\"Humedad demasiado baja.\");\n}\n\nif (message.length > 0) {\n    msg.payload = msg.payload.CHIPID;\n    msg.payload += \"\\n\" + message[0];\n    if (message.length > 1) {\n        msg.payload += \"\\n\" + message[1];\n    }\n    return msg;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 860,
+        "y": 460,
+        "wires": [
+            [
+                "524828b9.756208"
+            ]
+        ]
+    },
+    {
+        "id": "524828b9.756208",
+        "type": "ui_toast",
+        "z": "83f81237.9f40b",
+        "position": "top right",
+        "displayTime": "3",
+        "highlight": "",
+        "outputs": 0,
+        "ok": "OK",
+        "cancel": "",
+        "topic": "",
+        "name": "",
+        "x": 1060,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "416b78bf.3cc358",
+        "type": "mqtt-broker",
+        "z": "",
+        "name": "",
+        "broker": "Iot.ac.uma.es",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "compatmode": true,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "e54f2b5d.d165d8",
+        "type": "mongodb",
+        "z": "",
+        "hostname": "iot.ac.uma.es",
+        "port": "27017",
+        "db": "IOT2",
+        "name": ""
+    }
+]
