@@ -1,5 +1,5 @@
 
-/* ============================ Librerías ============================ */
+/* =============================== Librerías =============================== */
 
 #include <ESP8266WiFi.h>
 #include <ESP8266httpUpdate.h>
@@ -63,7 +63,6 @@ unsigned long lastMsg = 0;
 WiFiClient espClient;
 
 // Creamos una instancia de la clase WiFiManager
-// Ampliacion
 WiFiManager wm; // global wm instance
 WiFiManagerParameter custom_field; // global param ( for non blocking w params )
 
@@ -79,10 +78,11 @@ const char* mqtt_server = "iot.ac.uma.es";
 #define BUTTON_PIN  0
 Button2 button = Button2(BUTTON_PIN);
 
-/* ------------------------------ LED y SWITCH ------------------------------ */
+/* ---------------------------- LED, SWITCH y DHT --------------------------- */
 
 #define LED_PIN     2
 #define SWITCH_PIN  16
+#define DHT_PIN     5
 
 float led, ledControl, ledTime;
 int encendido = 1;
@@ -94,65 +94,219 @@ int switchLed;
 #define MSG_BUFFER_SIZE  (128)
 char msg[MSG_BUFFER_SIZE];
 
-/* =============================== Funciones ================================ */
+/* ========================= Definicion de funciones ======================== */
 
-/* ---------------------------------- OTA ----------------------------------- */
+/* -------------------------------- WIFI -------------------------------- */
+void setup_wifi();
+void saveParamCallback();
+String getParam(String name);
 
+/* -------------------------------- FOTA -------------------------------- */
 void progreso_OTA(int, int);
 void final_OTA();
 void inicio_OTA();
 void error_OTA(int);
 void checkOTA();
 
-void final_OTA()
-{
-  Serial.println("Fin OTA. Reiniciando...");
-}
+/* -------------------------------- MQTT -------------------------------- */
+void callback(char* topic, byte* payload, unsigned int length);
+bool checkTopicFOTA(char* topic, char* mensaje);
+bool checkTopicLedCmd(char* topic, char* mensaje);
+bool checkTopicSwitchCmd(char* topic, char* mensaje);
+bool checkTopicConfig(char* topic, char* mensaje);
+void reconnect();
 
-void inicio_OTA()
-{
-  Serial.println("Nuevo Firmware encontrado. Actualizando...");
-}
+/* ------------------------------- BUTTON ------------------------------- */
+void pulsacionCorta(Button2& btn);
+void pulsacionLarga(Button2& btn);
+void pulsacionDoble(Button2& btn);
+void pulsacionTriple(Button2& btn);
 
-void error_OTA(int e)
-{
-  char cadena[64];
-  snprintf(cadena, 64, "ERROR: %d", e);
-  Serial.println(cadena);
-}
+/* -------------------------------- JSON -------------------------------- */
+String serializa_JSON_datos(struct registro_datos datos);
+String serializa_JSON_status(String actuador, float valor, String origen);
+String serializa_JSON_error(String mensaje);
+String serializa_JSON_conexion(bool estado);
 
-void progreso_OTA(int x, int todo)
-{
-  char cadena[256];
-  int progress = (int)((x * 100) / todo);
-  if (progress % 10 == 0)
-  {
-    snprintf(cadena, 256, "Progreso: %d%% - %dK de %dK", progress, x / 1024, todo / 1024);
-    Serial.println(cadena);
+/* ===================================== Setup ===================================== */
+
+void setup() {
+
+  /* Configura el monitor serie */
+  Serial.begin(115200);
+
+  /* Asociamos BUTTON, LED, SWITCH y DHT */
+  pinMode(BUTTON_PIN, INPUT_PULLUP);  // Connect BUTTON to GPIO {BUTTON_PIN}
+  pinMode(LED_PIN, OUTPUT);           // Connect LED to GPIO {LED_PIN}
+  pinMode(SWITCH_PIN, OUTPUT);        // Connect SWITCH to GPIO {SWITCH_PIN}
+  dht.setup(DHT_PIN, DHTesp::DHT11);  // Connect DHT to GPIO {DHT_PIN}
+
+  /* Configuramos el botón */
+  button.setClickHandler(pulsacionCorta);
+  button.setDoubleClickHandler(pulsacionDoble);
+  button.setLongClickHandler(pulsacionLarga);
+  button.setTripleClickHandler(pulsacionTriple);
+
+  /* Inicializamos EEPROM y actualizamos con los valores de la memoria FLASH */
+  EEPROM.begin(512);
+  if ((int)EEPROM.read(100) != 0) {
+    led = 50;                     // Por defecto LED medio encendido
+    ledTime = 10;                 // Por defecto velocidad 10 ms
+    datosTime = 5 * 60;           // Por defecto 5 minutos
+    otaTime = 24 * 60;            // Por defecto 24 horas
+    switchLed = 0;                // Por defecto SWITCH apagado
+    wifiStatus = 0;               // Por defecto wifiStatus 0
+    EEPROM.write(13, led);        // Escribimos el valor en memoria
+    EEPROM.write(20, ledTime);    // Escribimos el valor en memoria
+    EEPROM.write(25, datosTime);  // Escribimos el valor en memoria
+    EEPROM.write(30, otaTime);    // Escribimos el valor en memoria
+    EEPROM.write(35, switchLed);  // Escribimos el valor en memoria
+    EEPROM.write(0, wifiStatus);  // Escribimos el valor en memoria
+    EEPROM.write(100, 0);         // Escribimos 0 para indicar que la FLASH esta escrita
+  } else {
+    led = EEPROM.read(13);
+    if (isnan(led) || led < 0 || led > 100) {
+      led = 50;             // Por defecto LED medio encendido
+    }
+    if (isnan(ledTime = EEPROM.read(20))) {
+      ledTime = 10;         // Por defecto velocidad 10 ms
+    }
+    if (isnan(datosTime = EEPROM.read(25))) {
+      datosTime = 5 * 60;   // Por defecto 5 minutos
+    }
+    if (isnan(otaTime = EEPROM.read(30))) {
+      otaTime = 24 * 60;    // Por defecto 24 horas
+    }
+    switchLed = EEPROM.read(35);
+    if (isnan(switchLed) || (switchLed != 0 && switchLed != 1)) {
+      switchLed = 0;        // Por defecto SWITCH apagado
+    }
+    wifiStatus = EEPROM.read(0);
+    if (isnan(wifiStatus) || (wifiStatus != 0 && wifiStatus != 1)) {
+      wifiStatus = 0;       // Por defecto wifiStatus 0
+    }
   }
+
+  /* Configuramos el LED */
+  Serial.print("\nLED: ");
+  Serial.println(100 - led);
+  ledControl = led;
+  analogWriteRange(100);
+  analogWrite(LED_PIN, led); 
+
+  /* Configuramos el SWITCH */
+  Serial.print("Switch: ");
+  Serial.println(switchLed);
+  if (switchLed == 1) {
+    digitalWrite(SWITCH_PIN, LOW); 
+  } else {
+    digitalWrite(SWITCH_PIN, HIGH);
+  }
+
+  /* Mostramos el valor inicial para la velocidad del LED */
+  Serial.print("Velocidad del LED (ms): ");
+  Serial.println(ledTime);
+
+  /* Mostramos el valor inicial para el envio de los datos */
+  Serial.print("Tiempo entre envio de datos (s): ");
+  Serial.println(datosTime);
+  
+  /* Iniciamos el WiFi */
+  Serial.print("Modo del WiFi: ");
+  Serial.println(wifiStatus);
+  setup_wifi();
+
+  /* Iniciamos MQTT */
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
+
+  /* Comprobamos actualizacion (FOTA) al comenzar */
+  checkOTA();
+  
 }
 
-void checkOTA() {
-  Serial.println( "--------------------------" );
-  Serial.println( "Comprobando actualización:" );
-  Serial.println( "--------------------------" );
-  ESPhttpUpdate.setLedPin(16, LOW);
-  ESPhttpUpdate.onStart(inicio_OTA);
-  ESPhttpUpdate.onError(error_OTA);
-  ESPhttpUpdate.onProgress(progreso_OTA);
-  ESPhttpUpdate.onEnd(final_OTA);
-  switch(ESPhttpUpdate.update(OTA_URL, HTTP_OTA_VERSION, OTAfingerprint)) {
-    case HTTP_UPDATE_FAILED:
-      Serial.printf(" HTTP update failed: Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
-      break;
-    case HTTP_UPDATE_NO_UPDATES:
-      Serial.println(F(" El dispositivo ya está actualizado"));
-      break;
-    case HTTP_UPDATE_OK:
-      Serial.println(F(" OK"));
-      break;
+/* ================================= Loop ================================= */
+
+/* The loop function runs over and over again forever */
+void loop() {
+
+  /* Nos conectamos a mqtt */
+  if (!client.connected()) {
+    reconnect();
   }
+  client.loop();
+
+  /* Permite el uso de Button2.h */
+  button.loop();
+
+  /* Enviamos los datos segun el tiempo de datosTime */
+  unsigned long now = millis();
+  if (now - lastMsg > datosTime * 1000) {
+
+    /* Actualizamos la fecha del ultimo mensaje */
+    lastMsg = now;
+
+    /* Cogemos los datos del DHT11 */
+    delay(dht.getMinimumSamplingPeriod());
+    float humidity = dht.getHumidity();
+    float temperature = dht.getTemperature();
+
+    /* Guardamos en una variable los datos necesarios */
+    datos.tiempo = millis();
+    datos.vcc = (float)ESP.getVcc() / (float)1000;
+    datos.temp = temperature;
+    datos.hum = humidity;
+    datos.ssid = WiFi.SSID();
+    datos.ip = WiFi.localIP();
+    datos.rssi = (int)WiFi.RSSI();
+    datos.led = 100 - led; // Lo invertimos para que 0 sea el mínimo y 100 el máximo
+    datos.switchLed = switchLed;
+
+    /* Variable auxiliar para el topic */
+    String topic;
+
+    /* Enviamos los errores si existen */
+    topic = "infind/GRUPO2/ESP";
+    topic += ESP.getChipId();
+    topic += "/errores";
+    if (isnan((double)datos.temp) && isnan((double)datos.hum)) {
+      client.publish(topic.c_str(), serializa_JSON_error("Lecturas de DHT11 nulas.").c_str());
+      Serial.println("ERROR EL SENSOR NO FUNCIONA");
+    }
+    if (datos.led < 0) {
+      client.publish(topic.c_str(), serializa_JSON_error("Valor de LED negativo.").c_str());
+      Serial.println("ERROR EL LED NO FUNCIONA");
+    }
+    if (datos.switchLed != 0 && datos.switchLed != 1) {
+      client.publish(topic.c_str(), serializa_JSON_error("Valor de SWITCH distinto de 0 y 1.").c_str());
+      Serial.println("ERROR EL SWITCH NO FUNCIONA");
+    }
+    
+    /* Guardamos en memoria el valor del LED y del SWITCH */
+    EEPROM.write(13, led);
+    EEPROM.commit();
+    EEPROM.write(35, switchLed);
+    EEPROM.commit();  
+
+    /* Mostramos el JSON generado para el topic datos y lo enviamos */
+    Serial.println("JSON generado con ArduinoJson:");
+    Serial.println(serializa_JSON_datos(datos));
+    topic = "infind/GRUPO2/ESP";
+    topic += ESP.getChipId();
+    topic += "/datos";
+    client.publish(topic.c_str(), serializa_JSON_datos(datos).c_str());
+  
+  }
+
+  /* Comprobamos actualizacion (FOTA) periodicamente */
+  if ((millis() - lastTime) > (otaTime * 60 * 1000)) {
+    checkOTA();
+    lastTime = millis();
+  }
+  
 }
+
+/* =============================== Funciones ================================ */
 
 /* ---------------------------------- WIFI ---------------------------------- */
 
@@ -202,12 +356,12 @@ void setup_wifi() {
   
 }
 
-void saveParamCallback(){
+void saveParamCallback() {
   Serial.println("[CALLBACK] saveParamCallback fired");
   Serial.println("PARAM customfieldid = " + getParam("customfieldid"));
 }
 
-String getParam(String name){
+String getParam(String name) {
   String value;
   if (wm.server->hasArg(name)) {
     value = wm.server->arg(name);
@@ -215,18 +369,59 @@ String getParam(String name){
   return value;
 }
 
-/* ---------------------------------- MQTT ---------------------------------- */
+/* ---------------------------------- OTA ----------------------------------- */
 
-void callback(char* topic, byte* payload, unsigned int length);
-bool checkTopicFOTA(char* topic, char* mensaje);
-bool checkTopicLedCmd(char* topic, char* mensaje);
-bool checkTopicSwitchCmd(char* topic, char* mensaje);
-bool checkTopicConfig(char* topic, char* mensaje);
+void final_OTA() {
+  Serial.println("Fin OTA. Reiniciando...");
+}
+
+void inicio_OTA() {
+  Serial.println("Nuevo Firmware encontrado. Actualizando...");
+}
+
+void error_OTA(int e) {
+  char cadena[64];
+  snprintf(cadena, 64, "ERROR: %d", e);
+  Serial.println(cadena);
+}
+
+void progreso_OTA(int x, int todo) {
+  char cadena[256];
+  int progress = (int)((x * 100) / todo);
+  if (progress % 10 == 0) {
+    snprintf(cadena, 256, "Progreso: %d%% - %dK de %dK", progress, x / 1024, todo / 1024);
+    Serial.println(cadena);
+  }
+}
+
+void checkOTA() {
+  Serial.println( "--------------------------" );
+  Serial.println( "Comprobando actualización:" );
+  Serial.println( "--------------------------" );
+  ESPhttpUpdate.setLedPin(16, LOW);
+  ESPhttpUpdate.onStart(inicio_OTA);
+  ESPhttpUpdate.onError(error_OTA);
+  ESPhttpUpdate.onProgress(progreso_OTA);
+  ESPhttpUpdate.onEnd(final_OTA);
+  switch(ESPhttpUpdate.update(OTA_URL, HTTP_OTA_VERSION, OTAfingerprint)) {
+    case HTTP_UPDATE_FAILED:
+      Serial.printf(" HTTP update failed: Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+      break;
+    case HTTP_UPDATE_NO_UPDATES:
+      Serial.println(F(" El dispositivo ya está actualizado"));
+      break;
+    case HTTP_UPDATE_OK:
+      Serial.println(F(" OK"));
+      break;
+  }
+}
+
+/* ---------------------------------- MQTT ---------------------------------- */
 
 void callback(char* topic, byte* payload, unsigned int length) {
 
-  char *mensaje = (char *)malloc(length + 1); // reservo memoria para copia del mensaje
-  strncpy(mensaje, (char*)payload, length); // copio el mensaje en cadena de caracteres
+  char *mensaje = (char *)malloc(length + 1); // Reservo memoria para copia del mensaje
+  strncpy(mensaje, (char*)payload, length);   // Copio el mensaje en cadena de caracteres
 
   Serial.print("Message arrived [");
   Serial.print(topic);
@@ -238,13 +433,14 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   bool known = false;
 
+  /* Comprbamos que topic ha llegado */
   if (!known) known = checkTopicFOTA(topic, mensaje);
   if (!known) known = checkTopicLedCmd(topic, mensaje);
   if (!known) known = checkTopicSwitchCmd(topic, mensaje);
   if (!known) known = checkTopicConfig(topic, mensaje);
   if (!known) Serial.println("Error: Uknown topic");
 
-  free(mensaje); // libero memoria
+  free(mensaje); // Libero memoria
 
 }
 
@@ -252,18 +448,17 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 bool checkTopicFOTA(char* topic, char* mensaje) {
 
-  // compruebo que es el topic adecuado
+  /* Comprobamos que es el topic adecuado */
   String topicStr = "infind/GRUPO2/ESP";
   topicStr += ESP.getChipId();
   topicStr += "/FOTA";
   
   if (strcmp(topic, topicStr.c_str()) == 0) {
     
-    StaticJsonDocument<512> root; // el tamaño tiene que ser adecuado para el mensaje
-    // Deserialize the JSON document
-    DeserializationError error = deserializeJson(root, mensaje);
+    StaticJsonDocument<512> root; // El tamaño tiene que ser adecuado para el mensaje
+    DeserializationError error = deserializeJson(root, mensaje); // Deserialize the JSON document
 
-    // Compruebo si no hubo error
+    /* Compruebo si no hubo error */
     if (error) {
       Serial.print("Error deserializeJson() failed: ");
       Serial.println(error.c_str());
@@ -271,12 +466,13 @@ bool checkTopicFOTA(char* topic, char* mensaje) {
       if (root.containsKey("actualiza")) {
         checkOTA();
       }
-    }    
+    }
     return true;
   }
+  
   return false;
+  
 }
-
 
 /* -- infind/GRUPO2/ESPX/config -- */
 
@@ -303,10 +499,10 @@ bool checkTopicConfig(char* topic, char* mensaje) {
       if ((root.containsKey("envia")) && (!root["envia"].isNull())) {
         // Cambiamos el tiempo de envio de los datos (s)
         datosTime = root["envia"];
-/*----------------------Guardo en la flash------------------------------------------*/
+        
         EEPROM.write(25, datosTime);
         EEPROM.commit(); 
-/*----------------------------------------------------------------------------------*/
+        
         Serial.print("envia: ");
         Serial.println(datosTime);   
       }          
@@ -314,10 +510,10 @@ bool checkTopicConfig(char* topic, char* mensaje) {
       if ((root.containsKey("actualiza")) && (!root["actualiza"].isNull())) {
         // Cambiamos el tiempo de comprobacion de actualizacion (min)
         otaTime = root["actualiza"];
-/*----------------------Guardo en la flash------------------------------------------*/
+        
         EEPROM.write(30, otaTime);
-        EEPROM.commit(); 
-/*----------------------------------------------------------------------------------*/
+        EEPROM.commit();
+        
         Serial.print("actualiza: ");
         Serial.println(otaTime);
       }              
@@ -325,10 +521,10 @@ bool checkTopicConfig(char* topic, char* mensaje) {
       if ((root.containsKey("velocidad")) && (!root["velocidad"].isNull())) {
         //Cambiamos el tiempo de cambio del LED (ms)
         ledTime = root["velocidad"];
-/*----------------------Guardo en la flash------------------------------------------*/
+        
         EEPROM.write(20, ledTime);
         EEPROM.commit(); 
-/*----------------------------------------------------------------------------------*/
+        
         Serial.print("velocidad: ");
         Serial.println(ledTime);            
       }
@@ -355,7 +551,7 @@ bool checkTopicLedCmd(char* topic, char* mensaje) {
       Serial.print("Error deserializeJson() failed: ");
       Serial.println(error.c_str());
     }
-    else if(root.containsKey("level") && (!root["level"].isNull()))  // comprobar si existe el campo/clave que estamos buscando
+    else if(root.containsKey("level"))  // comprobar si existe el campo/clave que estamos buscando
     {
       float valor = root["level"];
       Serial.print("Mensaje OK, level = ");
@@ -439,7 +635,6 @@ bool checkTopicSwitchCmd(char* topic, char* mensaje) {
   } // if topic
   return false;
 }
-
 
 /* -- setup MQTT -- */
 
@@ -539,7 +734,7 @@ void pulsacionDoble(Button2& btn) {
   String topic = "infind/GRUPO2/ESP";
   topic += ESP.getChipId();
   topic += "/led/status";
-  client.publish(topic.c_str(), serializa_JSON_status("led", ledControl, "pulsador").c_str());
+  client.publish(topic.c_str(), serializa_JSON_status("led", 100 - led, "pulsador").c_str());
 }
 
 /* Comprueba actualización disponible (FOTA) */
@@ -558,83 +753,7 @@ void pulsacionTriple(Button2& btn) {
     wm.setConfigPortalTimeout(120);
 }
 
-/* ===================================== Setup ===================================== */
-
-void setup() {
-  
-  Serial.begin(115200);
-
-  /* Inicializamos el LED y el SWITCH */
-  pinMode(LED_PIN, OUTPUT);
-  pinMode(SWITCH_PIN, OUTPUT);
-
-  /* Inicializamos EEPROM y actualizamos los valores con los de la memoria FLASH */
-  EEPROM.begin(512);
-  led = EEPROM.read(13);
-  if (isnan(led) || led < 0 || led > 100) {
-    led = 50;             // Por defecto LED medio encendido
-  }
-  if (isnan(ledTime = EEPROM.read(20))) {
-    ledTime = 10;         // Por defecto velocidad 10 ms
-  }
-  if (isnan(datosTime = EEPROM.read(25))) {
-    datosTime = 5 * 60;   // Por defecto 5 minutos
-  }
-  if (isnan(otaTime = EEPROM.read(30))) {
-    otaTime = 24 * 60;    // Por defecto 24 horas
-  }
-  switchLed = EEPROM.read(35);
-  if (isnan(switchLed) || (switchLed != 0 && switchLed != 1)) {
-    switchLed = 0;        // Por defecto SWITCH apagado
-  }
-  wifiStatus = EEPROM.read(0);
-  if (isnan(wifiStatus) || (wifiStatus != 0 && wifiStatus != 1)) {
-    wifiStatus = 0;       // Por defecto wifiStatus 0
-  }
-
-  /* Mostramos el valor inicial para el LED */
-  Serial.print("\nLED: ");
-  Serial.println(100 - led);
-  ledControl = led;
-  analogWriteRange(100);
-  analogWrite(LED_PIN, led); 
-
-  /* Mostramos el valor inicial para el SWITCH */
-  Serial.print("Switch: ");
-  Serial.println(switchLed);
-  if (switchLed == 1) {
-    digitalWrite(SWITCH_PIN, LOW); 
-  } else {
-    digitalWrite(SWITCH_PIN, HIGH);
-  }
-
-  /* Mostramos el valor inicial para la velocidad del LED */
-  Serial.print("Velocidad del LED (ms): ");
-  Serial.println(ledTime);
-
-  /* Mostramos el valor inicial para el envio de los datos */
-  Serial.print("Tiempo entre envio de datos (s): ");
-  Serial.println(datosTime);
-  
-  /* Leemos el wifiStatus de la memoria FLASH */
-  // wifiStatus = EEPROM.read(0);
-  setup_wifi();
-
-  client.setServer(mqtt_server, 1883);
-  client.setCallback(callback);
-  dht.setup(5, DHTesp::DHT11);    // Connect DHT sensor to GPIO 5
-
-  /* Se comprueba actualización (FOTA) al comenzar */
-  checkOTA();
-
-  /* Configuramos el botón */
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-  button.setClickHandler(pulsacionCorta);
-  button.setDoubleClickHandler(pulsacionDoble);
-  button.setLongClickHandler(pulsacionLarga);
-  button.setTripleClickHandler(pulsacionTriple);
-  
-}
+/* -------------------------------- JSON -------------------------------- /*
 
 /* Creamos el JSON para el topic datos */
 String serializa_JSON_datos(struct registro_datos datos) {
@@ -708,80 +827,4 @@ String serializa_JSON_conexion(bool estado) {
 
   serializeJson(jsonRoot, jsonString);
   return jsonString;
-}
-
-/* The loop function runs over and over again forever */
-void loop() {
-
-  if (!client.connected()) {
-    reconnect();
-  }
-  client.loop();
-
-  button.loop();
-
-  /* Enviamos los datos segun el tiempo de datosTime */
-  unsigned long now = millis();
-  if (now - lastMsg > datosTime * 1000) {
-
-    /* Cogemos los datos del DHT11 */
-    delay(dht.getMinimumSamplingPeriod());
-    float humidity = dht.getHumidity();
-    float temperature = dht.getTemperature();
-  
-    lastMsg = now;
-
-    /* Guardamos en una variable los datos necesarios */
-    datos.tiempo = millis();
-    datos.vcc = (float)ESP.getVcc() / (float)1000;
-    datos.temp = temperature;
-    datos.hum = humidity;
-    datos.ssid = WiFi.SSID();
-    datos.ip = WiFi.localIP();
-    datos.rssi = (int)WiFi.RSSI();
-    datos.led = 100 - led; // Lo invertimos para que 0 sea el mínimo y 100 el máximo
-    datos.switchLed = switchLed;
-
-    String topic;
-    
-/*----------------Errores y alertas--------------------------------------------*/
-    topic = "infind/GRUPO2/ESP";
-    topic += ESP.getChipId();
-    topic += "/errores";
-    if (isnan((double)datos.temp) && isnan((double)datos.hum)) {
-      client.publish(topic.c_str(), serializa_JSON_error("Lecturas de DHT11 nulas.").c_str());
-      Serial.println("ERROR EL SENSOR NO FUNCIONA");
-    }
-    if (datos.led < 0) {
-      client.publish(topic.c_str(), serializa_JSON_error("Valor de LED negativo.").c_str());
-      Serial.println("ERROR EL LED NO FUNCIONA");
-    }
-    if (datos.switchLed != 0 && datos.switchLed != 1) {
-      client.publish(topic.c_str(), serializa_JSON_error("Valor de SWITCH distinto de 0 y 1.").c_str());
-      Serial.println("ERROR EL SWITCH NO FUNCIONA");
-    }
-/*------------------------------------------------------------------------------*/ 
-    
-    /* Guardamos en memoria el valor del LED y del SWITCH */
-    EEPROM.write(13, led);
-    EEPROM.commit();
-    EEPROM.write(35, switchLed);
-    EEPROM.commit();  
-
-    /* Mostramos el JSON generado para el topic datos y lo enviamos */
-    Serial.println("JSON generado con ArduinoJson:");
-    Serial.println(serializa_JSON_datos(datos));
-    topic = "infind/GRUPO2/ESP";
-    topic += ESP.getChipId();
-    topic += "/datos";
-    client.publish(topic.c_str(), serializa_JSON_datos(datos).c_str());
-  
-  }
-
-  if ((millis() - lastTime) > (otaTime * 60 * 1000)) {
-    checkOTA();
-    lastTime = millis();
-  }
-
-  
 }
