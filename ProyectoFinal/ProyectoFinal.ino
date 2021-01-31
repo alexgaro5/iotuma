@@ -727,8 +727,10 @@ void pulsacionCorta(Button2& btn) {
 
 /* El LED se enciende al nivel máximo */
 void pulsacionDoble(Button2& btn) {
-  analogWrite(LED_PIN, 0);
   led = 0;
+  analogWrite(LED_PIN, led);
+  encendido = 1;
+  ledControl = led;
 
   /* Enviamos por mqtt el status del LED */
   String topic = "infind/GRUPO2/ESP";
