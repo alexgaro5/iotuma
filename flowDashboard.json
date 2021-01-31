@@ -1,0 +1,2742 @@
+[
+    {
+        "id": "6729fffb.0b33c",
+        "type": "tab",
+        "label": "Dashboard",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "99be4e30.c762e",
+        "type": "inject",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "repeat": "10",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 190,
+        "y": 240,
+        "wires": [
+            [
+                "6c2acaca.4d5334"
+            ]
+        ]
+    },
+    {
+        "id": "33d02b02.9cec64",
+        "type": "mongodb in",
+        "z": "6729fffb.0b33c",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "datos",
+        "operation": "find",
+        "x": 630,
+        "y": 240,
+        "wires": [
+            [
+                "ae3fd2b9.47e7b",
+                "37f9fbf9.e9fc24",
+                "cdf0fe00.cdb48"
+            ]
+        ]
+    },
+    {
+        "id": "3da13930.607106",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Selector de ESP",
+        "info": "",
+        "x": 100,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "9111e33f.30da6",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "agrega por días",
+        "func": "// fecha por defecto es hoy\nvar ahora = new Date();\nif (msg.payload === 0){ //Ultima semana\n    var desde = new Date(ahora);\n    desde.setDate(desde.getDate() - 7);\n    \n    global.set(\"desde\", desde)\n    global.set(\"hasta\", ahora)\n}else if (msg.payload === 1){ //Ultimo dia\n    var desde = new Date();\n    \n    global.set(\"desde\", desde)\n    global.set(\"hasta\", ahora)\n} else if (msg.payload === 2){ //Ultimo mes\n    var desde = new Date(ahora);\n    desde.setDate(desde.getDate() - 30);\n    \n    global.set(\"desde\", desde)\n    global.set(\"hasta\", ahora)\n}else {\n    var desde = new Date(global.get(\"desde\") || ahora);\n    var hasta = new Date(global.get(\"hasta\") || ahora); \n\n    global.set(\"desde\", desde)\n    global.set(\"hasta\", hasta)\n}\n\n// pillo los globales si los hay, si no la fecha de hoy\nvar desde = new Date(global.get(\"desde\"));\nvar hasta = new Date(global.get(\"hasta\"));\n\n// el día de inicio desde las cero horas\nvar inicio = new Date(desde.getFullYear(),desde.getMonth(),desde.getDate(),1,0,0,0);\n// el día final es hasta final del día\nvar final = new Date(hasta.getFullYear(),hasta.getMonth(),hasta.getDate(),24,59,59,99);\n\nif(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n\nmsg.payload=\n[\n    { \"$match\": { \"date\": { \"$gte\": inicio , \"$lte\": final } } },\n    { \"$project\": {\n        \"date\": 1,\n        \"temperatura\": \"$DHT11.temp\"\n        }\n    },\n    { \"$group\": {\n        \"_id\": { \n        \"$dateFromParts\" : {\n            \"year\": { \"$year\": \"$date\" }, \n            \"month\": { \"$month\": \"$date\" },\n            \"day\": { \"$dayOfMonth\": \"$date\" }\n        }},\n\n        \"Tmedia\":{\"$avg\":\"$temperatura\"},\n        \"Tmax\":  {\"$max\":\"$temperatura\"},\n        \"Tmin\":  {\"$min\":\"$temperatura\"},\n        \"datos\": {\"$sum\":1},\n    }},\n    { \"$sort\": {\"_id\": 1} }\n];\n\n}else{\n\nmsg.payload=\n[\n    { \"$match\": { \"date\": { \"$gte\": inicio , \"$lte\": final }, \"CHIPID\": {\"$eq\": global.get(\"ESP\")} } },\n    { \"$project\": {\n        \"date\": 1,\n        \"temperatura\": \"$DHT11.temp\"\n        }\n    },\n    { \"$group\": {\n        \"_id\": { \n        \"$dateFromParts\" : {\n            \"year\": { \"$year\": \"$date\" }, \n            \"month\": { \"$month\": \"$date\" },\n            \"day\": { \"$dayOfMonth\": \"$date\" }\n        }},\n\n        \"Tmedia\":{\"$avg\":\"$temperatura\"},\n        \"Tmax\":  {\"$max\":\"$temperatura\"},\n        \"Tmin\":  {\"$min\":\"$temperatura\"},\n        \"datos\": {\"$sum\":1},\n    }},\n    { \"$sort\": {\"_id\": 1} }\n];\n  \n    \n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 400,
+        "y": 800,
+        "wires": [
+            [
+                "8313545f.c49d08"
+            ]
+        ]
+    },
+    {
+        "id": "8313545f.c49d08",
+        "type": "mongodb in",
+        "z": "6729fffb.0b33c",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "datos",
+        "operation": "aggregate",
+        "x": 650,
+        "y": 800,
+        "wires": [
+            [
+                "7ef6eada.69b244"
+            ]
+        ]
+    },
+    {
+        "id": "7ef6eada.69b244",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "genera datos gráfica",
+        "func": "var arrayavg=[];\nvar arraymax=[];\nvar arraymin=[];\n\n// los arrays usados en la represenstación gráfica deben contener objetos JSON con dos campos: {x , y}\n// en x debemos poner la hora en formato \"timestamp\". Si tenemos un objeto fecha se puede convertir usando el método getTime()\n// en y debemos poner el valor de la variable\n// mas info en: https://github.com/node-red/node-red-dashboard/blob/master/Charts.md\n\nif(Array.isArray(msg.payload) && msg.payload.length>0)\n{\n    for (var i = 0; i < msg.payload.length; i++) { // añade datos a los array\n        arrayavg.push({x : msg.payload[i]._id.getTime() , y : msg.payload[i].Tmedia.toFixed(2)});\n        arraymax.push({x : msg.payload[i]._id.getTime() , y : msg.payload[i].Tmax.toFixed(2)});\n        arraymin.push({x : msg.payload[i]._id.getTime() , y : msg.payload[i].Tmin.toFixed(2)});\n    }\n}\n    \nmsg.payload = [{\n        \"series\":[\"T.media\",\"T.max\",\"T.min\"],\n        \"data\":[arrayavg, arraymax, arraymin],\n        \"labels\":[\"\"]\n        }];\n\nreturn msg;  ",
+        "outputs": "1",
+        "noerr": 0,
+        "x": 980,
+        "y": 800,
+        "wires": [
+            [
+                "4e274b68.36eec4"
+            ]
+        ]
+    },
+    {
+        "id": "4e274b68.36eec4",
+        "type": "ui_chart",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "group": "53e0f334.d04d9c",
+        "order": 15,
+        "width": "9",
+        "height": "6",
+        "label": "Temperaturas",
+        "chartType": "line",
+        "legend": "true",
+        "xformat": "D/M",
+        "interpolate": "linear",
+        "nodata": "",
+        "dot": false,
+        "ymin": "",
+        "ymax": "",
+        "removeOlder": 1,
+        "removeOlderPoints": "",
+        "removeOlderUnit": "3600",
+        "cutout": 0,
+        "useOneColor": false,
+        "colors": [
+            "#008000",
+            "#ff0000",
+            "#0080ff",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "useOldStyle": false,
+        "x": 1200,
+        "y": 800,
+        "wires": [
+            [],
+            []
+        ]
+    },
+    {
+        "id": "9e53e73.5f2a218",
+        "type": "change",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "desde",
+                "pt": "global",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 340,
+        "y": 380,
+        "wires": [
+            [
+                "78d78c0.02c8674"
+            ]
+        ]
+    },
+    {
+        "id": "51ed402d.0c407",
+        "type": "change",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "hasta",
+                "pt": "global",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 340,
+        "y": 420,
+        "wires": [
+            [
+                "78d78c0.02c8674"
+            ]
+        ]
+    },
+    {
+        "id": "78d78c0.02c8674",
+        "type": "link out",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "links": [
+            "4ed6a832.1ea078",
+            "3b8ad954.8c47f6"
+        ],
+        "x": 629.7700500488281,
+        "y": 406.7074279785156,
+        "wires": []
+    },
+    {
+        "id": "4ed6a832.1ea078",
+        "type": "link in",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "links": [
+            "78d78c0.02c8674",
+            "9c1e0ed9.41a76"
+        ],
+        "x": 95,
+        "y": 860,
+        "wires": [
+            [
+                "9111e33f.30da6",
+                "b0c5b4a1.2ce3d8",
+                "8f751086.9e979",
+                "66153c5f.377b94",
+                "7a776b03.248494"
+            ]
+        ]
+    },
+    {
+        "id": "66153c5f.377b94",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "agreaga todo",
+        "func": "// fecha por defecto es hoy\nvar ahora = new Date();\nif (msg.payload === 0){ //Ultima semana\n    var desde = new Date(ahora);\n    desde.setDate(desde.getDate() - 7);\n    \n    global.set(\"desde2\", desde)\n    global.set(\"hasta2\", ahora)\n}else if (msg.payload === 1){ //Ultimo dia\n    var desde = new Date();\n    \n    global.set(\"desde2\", desde)\n    global.set(\"hasta2\", ahora)\n} else if (msg.payload === 2){ //Ultimo mes\n    var desde = new Date(ahora);\n    desde.setDate(desde.getDate() - 30);\n    \n    global.set(\"desde2\", desde)\n    global.set(\"hasta2\", ahora)\n}else {\n    var desde = new Date(global.get(\"desde\") || ahora);\n    var hasta = new Date(global.get(\"hasta\") || ahora); \n\n    global.set(\"desde2\", desde)\n    global.set(\"hasta2\", hasta)\n}\n\n// pillo los globales si los hay, si no la fecha de hoy\nvar desde = new Date(global.get(\"desde2\"));\nvar hasta = new Date(global.get(\"hasta2\")); \n\n// el día de inicio desde las cero horas\nvar inicio = new Date(desde.getFullYear(),desde.getMonth(),desde.getDate(),1,0,0,0);\n// el día final es hasta final del día\nvar final = new Date(hasta.getFullYear(),hasta.getMonth(),hasta.getDate(),24,59,59,99);\n\nif(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n    msg.payload=\n    [\n    { \"$match\": { \"date\": { \"$gte\": inicio , \"$lte\": final } } },\n    { \"$project\": {\n            \"temperatura\": \"$DHT11.temp\"\n        }\n    },\n    { \"$group\": {\n        \"_id\": 0,\n        \"Tmedia\":{\"$avg\":\"$temperatura\"},\n        \"Tmax\":  {\"$max\":\"$temperatura\"},\n        \"Tmin\":  {\"$min\":\"$temperatura\"},\n        \"datos\": {\"$sum\":1}\n    }}\n    ];\n}else{\n    msg.payload=\n    [\n    { \"$match\": { \"date\": { \"$gte\": inicio , \"$lte\": final }, \"CHIPID\": { \"$eq\": global.get(\"ESP\")} } },\n    { \"$project\": {\n            \"temperatura\": \"$DHT11.temp\"\n        }\n    },\n    { \"$group\": {\n        \"_id\": 0,\n        \"Tmedia\":{\"$avg\":\"$temperatura\"},\n        \"Tmax\":  {\"$max\":\"$temperatura\"},\n        \"Tmin\":  {\"$min\":\"$temperatura\"},\n        \"datos\": {\"$sum\":1}\n    }}\n    ];\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 410,
+        "y": 720,
+        "wires": [
+            [
+                "eef7918c.792ba"
+            ]
+        ]
+    },
+    {
+        "id": "eef7918c.792ba",
+        "type": "mongodb in",
+        "z": "6729fffb.0b33c",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "datos",
+        "operation": "aggregate",
+        "x": 650,
+        "y": 720,
+        "wires": [
+            [
+                "a11d2454.5e7e68",
+                "70a8ea7f.144804",
+                "a83774f3.5d6cb8",
+                "fc716666.832498"
+            ]
+        ]
+    },
+    {
+        "id": "a11d2454.5e7e68",
+        "type": "ui_text",
+        "z": "6729fffb.0b33c",
+        "group": "53e0f334.d04d9c",
+        "order": 8,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Temperatura media",
+        "format": "{{msg.payload[0].Tmedia | number:1 }}ºC",
+        "layout": "row-left",
+        "x": 1010,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "70a8ea7f.144804",
+        "type": "ui_text",
+        "z": "6729fffb.0b33c",
+        "group": "53e0f334.d04d9c",
+        "order": 10,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Temperatura  máxima",
+        "format": "{{msg.payload[0].Tmax | number:1 }}ºC",
+        "layout": "row-left",
+        "x": 1020,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "a83774f3.5d6cb8",
+        "type": "ui_text",
+        "z": "6729fffb.0b33c",
+        "group": "53e0f334.d04d9c",
+        "order": 12,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Temperatura  mínima",
+        "format": "{{msg.payload[0].Tmin | number:1 }}ºC",
+        "layout": "row-left",
+        "x": 1020,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "df678c10.11963",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Controles para seleccionar fechas",
+        "info": "",
+        "x": 160,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "102946cf.e2e209",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Consultas agregadas",
+        "info": "",
+        "x": 128.78997802734375,
+        "y": 662.366455078125,
+        "wires": []
+    },
+    {
+        "id": "fc716666.832498",
+        "type": "ui_text",
+        "z": "6729fffb.0b33c",
+        "group": "53e0f334.d04d9c",
+        "order": 14,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Número de datos",
+        "format": "{{msg.payload[0].datos }} muestras",
+        "layout": "row-left",
+        "x": 1010,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "f45e1a30.183af8",
+        "type": "ui_date_picker",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "label": "Fecha de inicio",
+        "group": "53e0f334.d04d9c",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "topic": "",
+        "x": 140,
+        "y": 380,
+        "wires": [
+            [
+                "9e53e73.5f2a218"
+            ]
+        ]
+    },
+    {
+        "id": "c99ee383.99991",
+        "type": "ui_date_picker",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "label": "Fecha de final",
+        "group": "53e0f334.d04d9c",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "topic": "",
+        "x": 140,
+        "y": 420,
+        "wires": [
+            [
+                "51ed402d.0c407"
+            ]
+        ]
+    },
+    {
+        "id": "28cfc583.a8fdfa",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Ultimo valor recibido",
+        "info": "",
+        "x": 110,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "6c2acaca.4d5334",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Último valor",
+        "func": "if(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n    msg.payload={};\n}else{\n    msg.payload={\"CHIPID\": {\"$eq\": global.get(\"ESP\")}};\n}\n\nmsg.limit=1;\nmsg.sort = {\"date\" : -1}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 390,
+        "y": 240,
+        "wires": [
+            [
+                "33d02b02.9cec64"
+            ]
+        ]
+    },
+    {
+        "id": "7ca7c46e.ba7a2c",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Temperatura",
+        "info": "",
+        "x": 96.11666870117188,
+        "y": 708.5167236328125,
+        "wires": []
+    },
+    {
+        "id": "b0c5b4a1.2ce3d8",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "agreaga todo",
+        "func": "// fecha por defecto es hoy\nvar ahora = new Date();\nif (msg.payload === 0){ //Ultima semana\n    var desde = new Date(ahora);\n    desde.setDate(desde.getDate() - 7);\n    \n    global.set(\"desde\", desde)\n    global.set(\"hasta\", ahora)\n}else if (msg.payload === 1){ //Ultimo dia\n    var desde = new Date();\n    \n    global.set(\"desde\", desde)\n    global.set(\"hasta\", ahora)\n} else if (msg.payload === 2){ //Ultimo mes\n    var desde = new Date(ahora);\n    desde.setDate(desde.getDate() - 30);\n    \n    global.set(\"desde\", desde)\n    global.set(\"hasta\", ahora)\n}else {\n    var desde = new Date(global.get(\"desde\") || ahora);\n    var hasta = new Date(global.get(\"hasta\") || ahora); \n\n    global.set(\"desde\", desde)\n    global.set(\"hasta\", hasta)\n}\n\n// pillo los globales si los hay, si no la fecha de hoy\nvar desde = new Date(global.get(\"desde\"));\nvar hasta = new Date(global.get(\"hasta\"));\n\n// el día de inicio desde las cero horas\nvar inicio = new Date(desde.getFullYear(),desde.getMonth(),desde.getDate(),1,0,0,0);\n// el día final es hasta final del día\nvar final = new Date(hasta.getFullYear(),hasta.getMonth(),hasta.getDate(),24,59,59,99);\n\nif(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n\nmsg.payload=\n[\n    { \"$match\": { \"date\": { \"$gte\": inicio , \"$lte\": final } } },\n    { \"$project\": {\n        \"humedad\": \"$DHT11.hum\"\n        }\n    },\n    { \"$group\": {\n        \"_id\": 0,\n        \"Hmedia\":{\"$avg\":\"$humedad\"},\n        \"Hmax\":  {\"$max\":\"$humedad\"},\n        \"Hmin\":  {\"$min\":\"$humedad\"},\n        \"datos\": {\"$sum\":1}\n    }}\n];\n\n}else{\n    \nmsg.payload=\n[\n    { \"$match\": { \"date\": { \"$gte\": inicio , \"$lte\": final }, \"CHIPID\": {\"$eq\": global.get(\"ESP\")} } },\n    { \"$project\": {\n        \"humedad\": \"$DHT11.hum\"\n        }\n    },\n    { \"$group\": {\n        \"_id\": 0,\n        \"Hmedia\":{\"$avg\":\"$humedad\"},\n        \"Hmax\":  {\"$max\":\"$humedad\"},\n        \"Hmin\":  {\"$min\":\"$humedad\"},\n        \"datos\": {\"$sum\":1}\n    }}\n];\n\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 410,
+        "y": 1020,
+        "wires": [
+            [
+                "3695f504.3e6e2a"
+            ]
+        ]
+    },
+    {
+        "id": "8f751086.9e979",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "agrega por días",
+        "func": "// fecha por defecto es hoy\nvar ahora = new Date();\nif (msg.payload === 0){ //Ultima semana\n    var desde = new Date(ahora);\n    desde.setDate(desde.getDate() - 7);\n    \n    global.set(\"desde\", desde)\n    global.set(\"hasta\", ahora)\n}else if (msg.payload === 1){ //Ultimo dia\n    var desde = new Date();\n    \n    global.set(\"desde\", desde)\n    global.set(\"hasta\", ahora)\n} else if (msg.payload === 2){ //Ultimo mes\n    var desde = new Date(ahora);\n    desde.setDate(desde.getDate() - 30);\n    \n    global.set(\"desde\", desde)\n    global.set(\"hasta\", ahora)\n}else {\n    var desde = new Date(global.get(\"desde\") || ahora);\n    var hasta = new Date(global.get(\"hasta\") || ahora); \n\n    global.set(\"desde\", desde)\n    global.set(\"hasta\", hasta)\n}\n\n// pillo los globales si los hay, si no la fecha de hoy\nvar desde = new Date(global.get(\"desde\"));\nvar hasta = new Date(global.get(\"hasta\"));\n\n// el día de inicio desde las cero horas\nvar inicio = new Date(desde.getFullYear(),desde.getMonth(),desde.getDate(),1,0,0,0);\n// el día final es hasta final del día\nvar final = new Date(hasta.getFullYear(),hasta.getMonth(),hasta.getDate(),24,59,59,99);\n\nif(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n\nmsg.payload=\n[\n    { \"$match\": { \"date\": { \"$gte\": inicio , \"$lte\": final } } },\n    { \"$project\": {\n        \"date\": 1,\n        \"humedad\": \"$DHT11.hum\"\n        }\n    },\n    { \"$group\": {\n        \"_id\": { \n        \"$dateFromParts\" : {\n            \"year\": { \"$year\": \"$date\" }, \n            \"month\": { \"$month\": \"$date\" },\n            \"day\": { \"$dayOfMonth\": \"$date\" }\n        }},\n\n        \"Hmedia\":{\"$avg\":\"$humedad\"},\n        \"Hmax\":  {\"$max\":\"$humedad\"},\n        \"Hmin\":  {\"$min\":\"$humedad\"},\n        \"datos\": {\"$sum\":1},\n    }},\n    { \"$sort\": {\"_id\": 1} }\n];\n\n}else{\n \nmsg.payload=\n[\n    { \"$match\": { \"date\": { \"$gte\": inicio , \"$lte\": final }, \"CHIPID\": {\"$eq\": global.get(\"ESP\")} } },\n    { \"$project\": {\n        \"date\": 1,\n        \"humedad\": \"$DHT11.hum\"\n        }\n    },\n    { \"$group\": {\n        \"_id\": { \n        \"$dateFromParts\" : {\n            \"year\": { \"$year\": \"$date\" }, \n            \"month\": { \"$month\": \"$date\" },\n            \"day\": { \"$dayOfMonth\": \"$date\" }\n        }},\n\n        \"Hmedia\":{\"$avg\":\"$humedad\"},\n        \"Hmax\":  {\"$max\":\"$humedad\"},\n        \"Hmin\":  {\"$min\":\"$humedad\"},\n        \"datos\": {\"$sum\":1},\n    }},\n    { \"$sort\": {\"_id\": 1} }\n]; \n    \n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 400,
+        "y": 1100,
+        "wires": [
+            [
+                "175ad1b1.b84ede"
+            ]
+        ]
+    },
+    {
+        "id": "385a3c10.9cb564",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Humedad",
+        "info": "",
+        "x": 77.11672973632812,
+        "y": 980.716796875,
+        "wires": []
+    },
+    {
+        "id": "3695f504.3e6e2a",
+        "type": "mongodb in",
+        "z": "6729fffb.0b33c",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "datos",
+        "operation": "aggregate",
+        "x": 650,
+        "y": 1020,
+        "wires": [
+            [
+                "5103acc0.47c204",
+                "8b8c67d8.a88f08",
+                "44b1053d.38956c"
+            ]
+        ]
+    },
+    {
+        "id": "5103acc0.47c204",
+        "type": "ui_text",
+        "z": "6729fffb.0b33c",
+        "group": "53e0f334.d04d9c",
+        "order": 9,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Humedad media",
+        "format": "{{msg.payload[0].Hmedia | number:1 }}%",
+        "layout": "row-left",
+        "x": 1020,
+        "y": 940,
+        "wires": []
+    },
+    {
+        "id": "8b8c67d8.a88f08",
+        "type": "ui_text",
+        "z": "6729fffb.0b33c",
+        "group": "53e0f334.d04d9c",
+        "order": 11,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Humedad máxima ",
+        "format": "{{msg.payload[0].Hmax | number:1 }}%",
+        "layout": "row-left",
+        "x": 1030,
+        "y": 980,
+        "wires": []
+    },
+    {
+        "id": "44b1053d.38956c",
+        "type": "ui_text",
+        "z": "6729fffb.0b33c",
+        "group": "53e0f334.d04d9c",
+        "order": 13,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Humedad mínima",
+        "format": "{{msg.payload[0].Hmin | number:1 }}%",
+        "layout": "row-left",
+        "x": 1030,
+        "y": 1020,
+        "wires": []
+    },
+    {
+        "id": "175ad1b1.b84ede",
+        "type": "mongodb in",
+        "z": "6729fffb.0b33c",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "datos",
+        "operation": "aggregate",
+        "x": 650,
+        "y": 1100,
+        "wires": [
+            [
+                "97120f8a.5cd3d"
+            ]
+        ]
+    },
+    {
+        "id": "97120f8a.5cd3d",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "genera datos gráfica",
+        "func": "var arrayavg=[];\nvar arraymax=[];\nvar arraymin=[];\n\n// los arrays usados en la represenstación gráfica deben contener objetos JSON con dos campos: {x , y}\n// en x debemos poner la hora en formato \"timestamp\". Si tenemos un objeto fecha se puede convertir usando el método getTime()\n// en y debemos poner el valor de la variable\n// mas info en: https://github.com/node-red/node-red-dashboard/blob/master/Charts.md\n\nif(Array.isArray(msg.payload) && msg.payload.length>0)\n{\n    for (var i = 0; i < msg.payload.length; i++) { // añade datos a los array\n        arrayavg.push({x : msg.payload[i]._id.getTime() , y : msg.payload[i].Hmedia.toFixed(2)});\n        arraymax.push({x : msg.payload[i]._id.getTime() , y : msg.payload[i].Hmax.toFixed(2)});\n        arraymin.push({x : msg.payload[i]._id.getTime() , y : msg.payload[i].Hmin.toFixed(2)});\n    }\n}\n    \nmsg.payload = [{\n        \"series\":[\"H.media\",\"H.max\",\"H.min\"],\n        \"data\":[arrayavg, arraymax, arraymin],\n        \"labels\":[\"\"]\n        }];\n\nreturn msg;  ",
+        "outputs": "1",
+        "noerr": 0,
+        "x": 980,
+        "y": 1100,
+        "wires": [
+            [
+                "6556b7ca.d6fd28"
+            ]
+        ]
+    },
+    {
+        "id": "6556b7ca.d6fd28",
+        "type": "ui_chart",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "group": "53e0f334.d04d9c",
+        "order": 16,
+        "width": "9",
+        "height": "6",
+        "label": "Humedades",
+        "chartType": "line",
+        "legend": "true",
+        "xformat": "D/M",
+        "interpolate": "linear",
+        "nodata": "",
+        "dot": false,
+        "ymin": "",
+        "ymax": "",
+        "removeOlder": 1,
+        "removeOlderPoints": "",
+        "removeOlderUnit": "3600",
+        "cutout": 0,
+        "useOneColor": false,
+        "colors": [
+            "#008000",
+            "#ff0000",
+            "#0080ff",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "useOldStyle": false,
+        "x": 1190,
+        "y": 1100,
+        "wires": [
+            [],
+            []
+        ]
+    },
+    {
+        "id": "78c299c2.913638",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Evolución histórica 24 últimas horas",
+        "info": "",
+        "x": 160,
+        "y": 1625,
+        "wires": []
+    },
+    {
+        "id": "a4f33fd7.ec019",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "agreaga todo",
+        "func": "// fecha por defecto es hoy\nvar ahora = new Date();\n// Fecha desde\nvar desde = new Date(ahora);\ndesde.setDate(desde.getDate() - 1);\n// Fecha hasta\nvar hasta=new Date(ahora);\n\n// el día de inicio desde las cero horas\nvar inicio = new Date(desde.getFullYear(),desde.getMonth(),desde.getDate(),1,0,0,0);\n// el día final es hasta final del día\nvar final = new Date(hasta.getFullYear(),hasta.getMonth(),hasta.getDate(),24,59,59,99);\n\nif(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n\nmsg.payload=\n[\n    { \"$match\": { \"date\": { \"$gte\": inicio , \"$lte\": final } } },\n    { \"$project\": {\n        \"temperatura\": \"$DHT11.temp\",\n        \"humedad\": \"$DHT11.hum\",\n        \"date\": \"$date\"\n        }\n    }\n];\n\n}else{\n \nmsg.payload=\n[\n    { \"$match\": { \"date\": { \"$gte\": inicio , \"$lte\": final }, \"CHIPID\": {\"$eq\": global.get(\"ESP\")} } },\n    { \"$project\": {\n        \"temperatura\": \"$DHT11.temp\",\n        \"humedad\": \"$DHT11.hum\",\n        \"date\": \"$date\"\n        }\n    }\n];\n    \n}    \n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 310,
+        "y": 1705,
+        "wires": [
+            [
+                "ba4e20cd.4583b"
+            ]
+        ]
+    },
+    {
+        "id": "ba4e20cd.4583b",
+        "type": "mongodb in",
+        "z": "6729fffb.0b33c",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "datos",
+        "operation": "aggregate",
+        "x": 550,
+        "y": 1705,
+        "wires": [
+            [
+                "15cf011b.2f52bf"
+            ]
+        ]
+    },
+    {
+        "id": "a91dc29.4f06a4",
+        "type": "inject",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "repeat": "1",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 110,
+        "y": 1705,
+        "wires": [
+            [
+                "a4f33fd7.ec019"
+            ]
+        ]
+    },
+    {
+        "id": "5974d9d3.fd85d8",
+        "type": "ui_button",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "group": "53e0f334.d04d9c",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Ultima Semana",
+        "tooltip": "Pone el rango de fechas al último día.",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "0",
+        "payloadType": "num",
+        "topic": "",
+        "x": 338.2169494628906,
+        "y": 462.5731201171875,
+        "wires": [
+            [
+                "78d78c0.02c8674"
+            ]
+        ]
+    },
+    {
+        "id": "b56cc1cd.5e6ee",
+        "type": "ui_button",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "group": "53e0f334.d04d9c",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Último día",
+        "tooltip": "Pone el rango de fechas a la última semana.",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "1",
+        "payloadType": "num",
+        "topic": "",
+        "x": 360,
+        "y": 500,
+        "wires": [
+            [
+                "78d78c0.02c8674"
+            ]
+        ]
+    },
+    {
+        "id": "4e54a945.4b3a48",
+        "type": "ui_button",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "group": "53e0f334.d04d9c",
+        "order": 5,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Último mes",
+        "tooltip": "Pone el rango de fechas al último mes.",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "2",
+        "payloadType": "num",
+        "topic": "",
+        "x": 350,
+        "y": 540,
+        "wires": [
+            [
+                "78d78c0.02c8674"
+            ]
+        ]
+    },
+    {
+        "id": "7a776b03.248494",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "consulta",
+        "func": "// pillo los globales si los hay, si no la fecha de hoy\nvar desde = new Date(global.get(\"desde\"));\nvar hasta = new Date(global.get(\"hasta\"));\n\n// el día de inicio desde las cero horas\nvar inicio = new Date(desde.getFullYear(),desde.getMonth(),desde.getDate(),0,0,0,0);\n// el día final es hasta final del día\nvar final = new Date(hasta.getFullYear(),hasta.getMonth(),hasta.getDate(),23,59,59,999);\n\nif(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n\nmsg.payload=\n[\n    { \"$match\": { \"date\": { \"$gte\": inicio , \"$lte\": final } } },\n    { \"$project\": {\n        \"_id\": 0,\n        \"date\": \"$date\",\n        \"CHIPID\": \"$CHIPID\",\n        \"temperatura\": \"$DHT11.temp\",\n        \"humedad\": \"$DHT11.hum\"\n        }\n    },\n    { \"$sort\": {\"date\": 1} }\n];\n\n}else{\n    \nmsg.payload=\n[\n    { \"$match\": { \"date\": { \"$gte\": inicio , \"$lte\": final }, \"CHIPID\": {\"$eq\": global.get(\"ESP\")}  } },\n    { \"$project\": {\n        \"_id\": 0,\n        \"date\": \"$date\",\n        \"CHIPID\": \"$CHIPID\",\n        \"temperatura\": \"$DHT11.temp\",\n        \"humedad\": \"$DHT11.hum\"\n        }\n    },\n    { \"$sort\": {\"date\": 1} }\n];\n\n    \n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 340,
+        "y": 1225,
+        "wires": [
+            [
+                "25337de5.b9b2c2"
+            ]
+        ]
+    },
+    {
+        "id": "31fd1e0c.8b8f62",
+        "type": "http in",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "url": "/DatosESP",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 1225,
+        "wires": [
+            [
+                "7a776b03.248494"
+            ]
+        ]
+    },
+    {
+        "id": "e6a17b5a.6fb5b8",
+        "type": "ui_template",
+        "z": "6729fffb.0b33c",
+        "group": "53e0f334.d04d9c",
+        "name": "",
+        "order": 7,
+        "width": "0",
+        "height": "0",
+        "format": "<style>\n.button {\n    text-align: center;\n    font: bold 17px Arial;\n    text-decoration: none;\n    background-color: #339966;\n    color: white;\n    padding: 8px 10px;\n    border: 2px solid #CCCCCC;\n  }\n  \n  .button:hover\n  {\n   background-color: #26734d;\n  }\n\n</style>\n<a href=\"/DatosESP\" class=\"button\">Descarga registros en CSV (EXCEL)</a>\n",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "templateScope": "local",
+        "x": 80,
+        "y": 1525,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "25337de5.b9b2c2",
+        "type": "mongodb in",
+        "z": "6729fffb.0b33c",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "datos",
+        "operation": "aggregate",
+        "x": 590,
+        "y": 1220,
+        "wires": [
+            [
+                "4b9ac123.b91f9"
+            ]
+        ]
+    },
+    {
+        "id": "20024fc8.004f2",
+        "type": "csv",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "sep": ";",
+        "hdrin": "",
+        "hdrout": true,
+        "multi": "one",
+        "ret": "\\r\\n",
+        "temp": "date, CHIPID, temperatura, humedad",
+        "skip": 0,
+        "x": 1030,
+        "y": 1225,
+        "wires": [
+            [
+                "c1cc11e5.9484d"
+            ]
+        ]
+    },
+    {
+        "id": "1994e0a.4f6421f",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Botón en HTML para lanzar descarga de fichero",
+        "info": "",
+        "x": 201.99990844726562,
+        "y": 1474.7001953125,
+        "wires": []
+    },
+    {
+        "id": "32fe6e27.97ffd2",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Flujo para descarga de fichero",
+        "info": "",
+        "x": 140,
+        "y": 1165,
+        "wires": []
+    },
+    {
+        "id": "c1cc11e5.9484d",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Unicode y separador",
+        "func": "if(global.get(\"separador_decimal\")==\"punto\")\n{\n    msg.payload='\\ufeff'+msg.payload;\n\n}\nelse\n{\n    msg.payload='\\ufeff'+(msg.payload).replace(/\\./g,\",\");\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1200,
+        "y": 1225,
+        "wires": [
+            [
+                "2ddf09be.ac4096"
+            ]
+        ]
+    },
+    {
+        "id": "2ddf09be.ac4096",
+        "type": "http response",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "Content-Disposition": "attachment; filename=registros.csv"
+        },
+        "x": 1370,
+        "y": 1225,
+        "wires": []
+    },
+    {
+        "id": "c2107e5c.440f8",
+        "type": "ui_switch",
+        "z": "6729fffb.0b33c",
+        "name": "separdor decimal",
+        "label": "{{msg.topic}}",
+        "tooltip": "",
+        "group": "53e0f334.d04d9c",
+        "order": 6,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "false",
+        "topic": "",
+        "style": "",
+        "onvalue": "true",
+        "onvalueType": "bool",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "false",
+        "offvalueType": "bool",
+        "officon": "",
+        "offcolor": "",
+        "x": 755.11669921875,
+        "y": 1434.5999755859375,
+        "wires": [
+            [
+                "4b947757.713578"
+            ]
+        ]
+    },
+    {
+        "id": "22da1d9b.076132",
+        "type": "inject",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "topic": "",
+        "payload": "true",
+        "payloadType": "bool",
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "x": 158.11379623413086,
+        "y": 1379.5118112564087,
+        "wires": [
+            [
+                "4b947757.713578"
+            ]
+        ]
+    },
+    {
+        "id": "4b947757.713578",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "set global separador_decimal",
+        "func": "if(msg.payload===true)\n{\n    global.set(\"separador_decimal\",\"coma\");\n    msg.topic=\"separador decimal = coma\";\n}\nelse\n{\n    global.set(\"separador_decimal\",\"punto\");\n    msg.topic=\"separador decimal = punto\";\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 486.12518310546875,
+        "y": 1380.219183921814,
+        "wires": [
+            [
+                "c2107e5c.440f8"
+            ]
+        ]
+    },
+    {
+        "id": "a3ff7795.be5458",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Selector de separador decimal",
+        "info": "",
+        "x": 140,
+        "y": 1325,
+        "wires": []
+    },
+    {
+        "id": "bffa4f07.d4bcf",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Log ",
+        "info": "",
+        "x": 70,
+        "y": 1785,
+        "wires": []
+    },
+    {
+        "id": "6c649907.08fc58",
+        "type": "mongodb in",
+        "z": "6729fffb.0b33c",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "error",
+        "operation": "find",
+        "x": 550,
+        "y": 1883,
+        "wires": [
+            [
+                "d194fb29.8f0638"
+            ]
+        ]
+    },
+    {
+        "id": "f396f240.1d043",
+        "type": "inject",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "repeat": "1",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 110,
+        "y": 1883,
+        "wires": [
+            [
+                "7ed3e7c2.c4b298"
+            ]
+        ]
+    },
+    {
+        "id": "7ed3e7c2.c4b298",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Filtrar error",
+        "func": "if(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n    msg.payload={};\n}else{\n    msg.payload={\"CHIPID\": {\"$eq\": global.get(\"ESP\")}};\n}\n\nmsg.sort = {\"date\" : -1}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 310,
+        "y": 1883,
+        "wires": [
+            [
+                "6c649907.08fc58"
+            ]
+        ]
+    },
+    {
+        "id": "ed3a2ec1.11c1c",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Errores",
+        "info": "",
+        "x": 69,
+        "y": 1837,
+        "wires": []
+    },
+    {
+        "id": "e03d08e7.c8d348",
+        "type": "template",
+        "z": "6729fffb.0b33c",
+        "name": "lista en formato html",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "<h4>Errores</h4>\n<ul>\n{{#payload}}\n    <li><b>{{CHIPID}}:</b> {{mensaje}} - <b>{{date}}</b> </li>\n{{/payload}}\n</ul>",
+        "output": "str",
+        "x": 1120,
+        "y": 1883,
+        "wires": [
+            [
+                "be901367.6fd7e"
+            ]
+        ]
+    },
+    {
+        "id": "be901367.6fd7e",
+        "type": "ui_template",
+        "z": "6729fffb.0b33c",
+        "group": "34cbacae.160414",
+        "name": "Errores",
+        "order": 1,
+        "width": "9",
+        "height": "6",
+        "format": "<div ng-bind-html=\"msg.payload\"></div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "templateScope": "local",
+        "x": 1320,
+        "y": 1883,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "f7c4837b.7be9f",
+        "type": "mongodb in",
+        "z": "6729fffb.0b33c",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "led",
+        "operation": "find",
+        "x": 550,
+        "y": 2118,
+        "wires": [
+            [
+                "41998e93.b0ac5",
+                "5c3f7a09.325294"
+            ]
+        ]
+    },
+    {
+        "id": "4022522b.7f97dc",
+        "type": "inject",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "repeat": "1",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 108,
+        "y": 2116,
+        "wires": [
+            [
+                "8cae2677.04ab58"
+            ]
+        ]
+    },
+    {
+        "id": "8cae2677.04ab58",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Filtrar LED",
+        "func": "if(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n    msg.payload={};\n}else{\n    msg.payload={\"CHIPID\": {\"$eq\": global.get(\"ESP\")}};\n}\n\nmsg.sort = {\"date\" : -1};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 310,
+        "y": 2118,
+        "wires": [
+            [
+                "f7c4837b.7be9f"
+            ]
+        ]
+    },
+    {
+        "id": "7a20e96d.dfd5b8",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Estados de LED",
+        "info": "",
+        "x": 92,
+        "y": 2056,
+        "wires": []
+    },
+    {
+        "id": "ca226e79.8f92",
+        "type": "template",
+        "z": "6729fffb.0b33c",
+        "name": "lista en formato html",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "<h4>Estado del LED</h4>\n<ul>\n{{#payload}}\n    <li><b>{{CHIPID}}:</b> Cambiado a {{led}}% desde {{origen}} - <b>{{date}}</b> </li>\n{{/payload}}\n</ul>",
+        "output": "str",
+        "x": 1120,
+        "y": 2118,
+        "wires": [
+            [
+                "8f06fa7e.7943b8"
+            ]
+        ]
+    },
+    {
+        "id": "8f06fa7e.7943b8",
+        "type": "ui_template",
+        "z": "6729fffb.0b33c",
+        "group": "34cbacae.160414",
+        "name": "LED",
+        "order": 4,
+        "width": "9",
+        "height": "6",
+        "format": "<div ng-bind-html=\"msg.payload\"></div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "templateScope": "local",
+        "x": 1310,
+        "y": 2118,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "d194fb29.8f0638",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Cambio fecha",
+        "func": "for (var i=0; i<msg.payload.length; i++){\n    fecha = msg.payload[i].date;\n    mes = fecha.getMonth() + 1;\n    dia = fecha.getDate();\n    hora = fecha.getHours();\n    minutos = fecha.getMinutes();\n    segundos = fecha.getSeconds();\n    if (mes<10) mes = \"0\" + mes;\n    if (dia<10) dia = \"0\" + dia;\n    if (hora<10) hora = \"0\" + hora;\n    if (minutos<10) minutos = \"0\" + minutos;  \n    if (segundos<10) segundos = \"0\" + segundos;    \n    fecha2 = dia + \"/\" + mes + \"/\" + fecha.getFullYear() + \" \" + hora + \":\" + minutos + \":\" + segundos;\n    msg.payload[i].date = fecha2;\n    \n    if(msg.payload[i].CHIPID==\"ESP455863\") msg.payload[i].CHIPID = \"ESPAlex\";\n    if(msg.payload[i].CHIPID==\"ESP1122620\") msg.payload[i].CHIPID = \"ESPManuel\";\n    if(msg.payload[i].CHIPID==\"ESP1127184\") msg.payload[i].CHIPID = \"ESPPablo\";\n    if(msg.payload[i].CHIPID==\"ESP833748\") msg.payload[i].CHIPID = \"ESPTeresa\";\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 900,
+        "y": 1883,
+        "wires": [
+            [
+                "e03d08e7.c8d348"
+            ]
+        ]
+    },
+    {
+        "id": "41998e93.b0ac5",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Cambio fecha",
+        "func": "for (var i=0; i<msg.payload.length; i++){\n    fecha = msg.payload[i].date;\n    mes = fecha.getMonth() + 1;\n    dia = fecha.getDate();\n    hora = fecha.getHours();\n    minutos = fecha.getMinutes();\n    segundos = fecha.getSeconds();\n    if (mes<10) mes = \"0\" + mes;\n    if (dia<10) dia = \"0\" + dia;\n    if (hora<10) hora = \"0\" + hora;\n    if (minutos<10) minutos = \"0\" + minutos;  \n    if (segundos<10) segundos = \"0\" + segundos;    \n    fecha2 = dia + \"/\" + mes + \"/\" + fecha.getFullYear() + \" \" + hora + \":\" + minutos + \":\" + segundos;\n    msg.payload[i].date = fecha2;\n    \n    if(msg.payload[i].CHIPID==\"ESP455863\") msg.payload[i].CHIPID = \"ESPAlex\";\n    if(msg.payload[i].CHIPID==\"ESP1122620\") msg.payload[i].CHIPID = \"ESPManuel\";\n    if(msg.payload[i].CHIPID==\"ESP1127184\") msg.payload[i].CHIPID = \"ESPPablo\";\n    if(msg.payload[i].CHIPID==\"ESP833748\") msg.payload[i].CHIPID = \"ESPTeresa\";\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 900,
+        "y": 2118,
+        "wires": [
+            [
+                "ca226e79.8f92"
+            ]
+        ]
+    },
+    {
+        "id": "15cf011b.2f52bf",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Preparar gráfica",
+        "func": "var temperatura=[];\nvar humedad=[];\n\n// los arrays usados en la represenstación gráfica deben contener objetos JSON con dos campos: {x , y}\n// en x debemos poner la hora en formato \"timestamp\". Si tenemos un objeto fecha se puede convertir usando el método getTime()\n// en y debemos poner el valor de la variable\n// mas info en: https://github.com/node-red/node-red-dashboard/blob/master/Charts.md\n\nif(Array.isArray(msg.payload) && msg.payload.length>0)\n{\n    for (var i = 0; i < msg.payload.length; i++) { // añade datos a los array\n        temperatura.push({x : msg.payload[i].date , y : msg.payload[i].temperatura});\n        humedad.push({x : msg.payload[i].date , y : msg.payload[i].humedad});\n    }\n}\n    \nmsg.payload = [{\n        \"series\":[\"Temperatura\",\"Humedad\"],\n        \"data\":[temperatura, humedad],\n        \"labels\":[\"\"]\n        }];\n\nreturn msg; ",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 900,
+        "y": 1705,
+        "wires": [
+            [
+                "4db71e34.75c"
+            ]
+        ]
+    },
+    {
+        "id": "4db71e34.75c",
+        "type": "ui_chart",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "group": "c000e063.5ce24",
+        "order": 5,
+        "width": "9",
+        "height": "6",
+        "label": "Evolución las últimas 24 horas",
+        "chartType": "line",
+        "legend": "true",
+        "xformat": "HH:mm",
+        "interpolate": "linear",
+        "nodata": "",
+        "dot": false,
+        "ymin": "",
+        "ymax": "",
+        "removeOlder": "5",
+        "removeOlderPoints": "",
+        "removeOlderUnit": "86400",
+        "cutout": 0,
+        "useOneColor": false,
+        "colors": [
+            "#008000",
+            "#ff0000",
+            "#0080ff",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "useOldStyle": false,
+        "x": 1150,
+        "y": 1705,
+        "wires": [
+            [],
+            []
+        ]
+    },
+    {
+        "id": "5c3f7a09.325294",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Preparar gráfica",
+        "func": "var placa1=[];\nvar placa2=[];\nvar placa3=[];\nvar placa4=[];\n\n// los arrays usados en la represenstación gráfica deben contener objetos JSON con dos campos: {x , y}\n// en x debemos poner la hora en formato \"timestamp\". Si tenemos un objeto fecha se puede convertir usando el método getTime()\n// en y debemos poner el valor de la variable\n// mas info en: https://github.com/node-red/node-red-dashboard/blob/master/Charts.md\n\nif(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n    if(Array.isArray(msg.payload) && msg.payload.length>0)\n    {\n        for (var i = 0; i < msg.payload.length; i++) { // añade datos a los array\n            if(msg.payload[i].CHIPID==\"ESP455863\") placa1.push({x : msg.payload[i].date , y : parseInt(msg.payload[i].led)});\n            if(msg.payload[i].CHIPID==\"ESP1122620\") placa2.push({x : msg.payload[i].date , y : parseInt(msg.payload[i].led)});\n            if(msg.payload[i].CHIPID==\"ESP1127184\") placa3.push({x : msg.payload[i].date , y : parseInt(msg.payload[i].led)});\n            if(msg.payload[i].CHIPID==\"ESP833748\") placa4.push({x : msg.payload[i].date , y : parseInt(msg.payload[i].led)});\n        }\n    }\n        \n    msg.payload = [{\n            \"series\":[\"ESPAlex\",\"ESPManuel\",\"ESPPablo\",\"ESPTeresa\"],\n            \"data\":[placa1, placa2, placa3, placa4],\n            \"labels\":[\"\"]\n            }];\n}else{\n    if(Array.isArray(msg.payload) && msg.payload.length>0)\n    {\n        for (var i = 0; i < msg.payload.length; i++) { // añade datos a los array\n            placa1.push({x : msg.payload[i].date , y : parseInt(msg.payload[i].led)});\n        }\n    }\n    \n    var nombrePlaca = global.get(\"ESP\");\n    \n    if(nombrePlaca==\"ESP455863\") nombrePlaca = \"ESPAlex\";\n    if(nombrePlaca==\"ESP1122620\") nombrePlaca = \"ESPManuel\";\n    if(nombrePlaca==\"ESP1127184\") nombrePlaca = \"ESPPablo\";\n    if(nombrePlaca==\"ESP833748\") nombrePlaca = \"ESPTeresa\";\n    \n    msg.payload = [{\n            \"series\":[nombrePlaca],\n            \"data\":[placa1],\n            \"labels\":[\"\"]\n            }];\n}\n\nreturn msg; ",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 900,
+        "y": 2200,
+        "wires": [
+            [
+                "86278b2f.d9a7f8"
+            ]
+        ]
+    },
+    {
+        "id": "86278b2f.d9a7f8",
+        "type": "ui_chart",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "group": "34cbacae.160414",
+        "order": 5,
+        "width": "9",
+        "height": "6",
+        "label": "Estado de LED",
+        "chartType": "line",
+        "legend": "true",
+        "xformat": "dd HH:mm",
+        "interpolate": "linear",
+        "nodata": "",
+        "dot": false,
+        "ymin": "",
+        "ymax": "",
+        "removeOlder": 1,
+        "removeOlderPoints": "100",
+        "removeOlderUnit": "86400",
+        "cutout": 0,
+        "useOneColor": false,
+        "colors": [
+            "#008000",
+            "#ff0000",
+            "#0080ff",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "useOldStyle": false,
+        "x": 1100,
+        "y": 2200,
+        "wires": [
+            [],
+            []
+        ]
+    },
+    {
+        "id": "4b9ac123.b91f9",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Cambio fecha",
+        "func": "for (var i=0; i<msg.payload.length; i++){\n    fecha = msg.payload[i].date;\n    mes = fecha.getMonth() + 1;\n    dia = fecha.getDate();\n    hora = fecha.getHours();\n    minutos = fecha.getMinutes();\n    segundos = fecha.getSeconds();\n    if (mes<10) mes = \"0\" + mes;\n    if (dia<10) dia = \"0\" + dia;\n    if (hora<10) hora = \"0\" + hora;\n    if (minutos<10) minutos = \"0\" + minutos;  \n    if (segundos<10) segundos = \"0\" + segundos;    \n    fecha2 = dia + \"/\" + mes + \"/\" + fecha.getFullYear() + \"-\" + hora + \":\" + minutos + \":\" + segundos;\n    msg.payload[i].date = fecha2;\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 860,
+        "y": 1225,
+        "wires": [
+            [
+                "20024fc8.004f2"
+            ]
+        ]
+    },
+    {
+        "id": "dbf37b61.b4f1e8",
+        "type": "change",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "ESP",
+                "pt": "global",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 400,
+        "y": 100,
+        "wires": [
+            [
+                "6c2acaca.4d5334",
+                "9c1e0ed9.41a76"
+            ]
+        ]
+    },
+    {
+        "id": "3c5f3b0c.b907d4",
+        "type": "ui_dropdown",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "label": "Seleccióna la ESP",
+        "tooltip": "",
+        "place": "",
+        "group": "c000e063.5ce24",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "options": [
+            {
+                "label": "Todas las ESPs",
+                "value": "0",
+                "type": "str"
+            },
+            {
+                "label": "ESPAlex",
+                "value": "ESP455863",
+                "type": "str"
+            },
+            {
+                "label": "ESPPablo",
+                "value": "ESP1127184",
+                "type": "str"
+            },
+            {
+                "label": "ESPTeresa",
+                "value": "ESP833748",
+                "type": "str"
+            },
+            {
+                "label": "ESPManuel",
+                "value": "ESP1122620",
+                "type": "str"
+            }
+        ],
+        "payload": "",
+        "topic": "",
+        "x": 170,
+        "y": 100,
+        "wires": [
+            [
+                "dbf37b61.b4f1e8"
+            ]
+        ]
+    },
+    {
+        "id": "a6462234.ea684",
+        "type": "link in",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "links": [
+            "9c1e0ed9.41a76"
+        ],
+        "x": 174,
+        "y": 1777,
+        "wires": [
+            [
+                "a4f33fd7.ec019",
+                "7ed3e7c2.c4b298",
+                "8cae2677.04ab58",
+                "51369498.50a54c"
+            ]
+        ]
+    },
+    {
+        "id": "9c1e0ed9.41a76",
+        "type": "link out",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "links": [
+            "4ed6a832.1ea078",
+            "a6462234.ea684",
+            "f1ce1759.bef9a8"
+        ],
+        "x": 555,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "147a5cac.7ef2a3",
+        "type": "mongodb in",
+        "z": "6729fffb.0b33c",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "switch",
+        "operation": "find",
+        "x": 560,
+        "y": 1998,
+        "wires": [
+            [
+                "6cb6b4db.6e41dc"
+            ]
+        ]
+    },
+    {
+        "id": "e9c28b9.d4f1078",
+        "type": "inject",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "repeat": "1",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 110,
+        "y": 1998,
+        "wires": [
+            [
+                "51369498.50a54c"
+            ]
+        ]
+    },
+    {
+        "id": "51369498.50a54c",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Filtrar switch",
+        "func": "if(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n    msg.payload={};\n}else{\n    msg.payload={\"CHIPID\": {\"$eq\": global.get(\"ESP\")}};\n}\n\nmsg.sort = {\"date\" : -1};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 310,
+        "y": 1998,
+        "wires": [
+            [
+                "147a5cac.7ef2a3"
+            ]
+        ]
+    },
+    {
+        "id": "9df31185.1511c",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Estados del switch",
+        "info": "",
+        "x": 110,
+        "y": 1938,
+        "wires": []
+    },
+    {
+        "id": "6368fb5f.f6c714",
+        "type": "template",
+        "z": "6729fffb.0b33c",
+        "name": "lista en formato html",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "<h4>Estado del switch</h4>\n<ul>\n{{#payload}}\n    <li><b>{{CHIPID}}:</b> Cambiado a {{switch}} desde {{origen}} - <b>{{date}}</b> </li>\n{{/payload}}\n</ul>",
+        "output": "str",
+        "x": 1120,
+        "y": 1998,
+        "wires": [
+            [
+                "62b33338.ee9a2c"
+            ]
+        ]
+    },
+    {
+        "id": "62b33338.ee9a2c",
+        "type": "ui_template",
+        "z": "6729fffb.0b33c",
+        "group": "34cbacae.160414",
+        "name": "Switch",
+        "order": 3,
+        "width": "9",
+        "height": "6",
+        "format": "<div ng-bind-html=\"msg.payload\"></div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "templateScope": "local",
+        "x": 1310,
+        "y": 1998,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "6cb6b4db.6e41dc",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Cambio fecha",
+        "func": "for (var i=0; i<msg.payload.length; i++){\n    fecha = msg.payload[i].date;\n    mes = fecha.getMonth() + 1;\n    dia = fecha.getDate();\n    hora = fecha.getHours();\n    minutos = fecha.getMinutes();\n    segundos = fecha.getSeconds();\n    if (mes<10) mes = \"0\" + mes;\n    if (dia<10) dia = \"0\" + dia;\n    if (hora<10) hora = \"0\" + hora;\n    if (minutos<10) minutos = \"0\" + minutos;  \n    if (segundos<10) segundos = \"0\" + segundos;    \n    fecha2 = dia + \"/\" + mes + \"/\" + fecha.getFullYear() + \" \" + hora + \":\" + minutos + \":\" + segundos;\n    msg.payload[i].date = fecha2;\n    \n    if(msg.payload[i].CHIPID==\"ESP455863\") msg.payload[i].CHIPID = \"ESPAlex\";\n    if(msg.payload[i].CHIPID==\"ESP1122620\") msg.payload[i].CHIPID = \"ESPManuel\";\n    if(msg.payload[i].CHIPID==\"ESP1127184\") msg.payload[i].CHIPID = \"ESPPablo\";\n    if(msg.payload[i].CHIPID==\"ESP833748\") msg.payload[i].CHIPID = \"ESPTeresa\";\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 900,
+        "y": 1998,
+        "wires": [
+            [
+                "6368fb5f.f6c714"
+            ]
+        ]
+    },
+    {
+        "id": "28c864ef.bf392c",
+        "type": "mqtt out",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "broker": "416b78bf.3cc358",
+        "x": 590,
+        "y": 2383,
+        "wires": []
+    },
+    {
+        "id": "6e38754c.1198dc",
+        "type": "ui_slider",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "label": "Cambiar la intensidad",
+        "tooltip": "",
+        "group": "8a7efcfd.e115b",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "outs": "end",
+        "topic": "",
+        "min": "0",
+        "max": "100",
+        "step": "1",
+        "x": 119.5,
+        "y": 2383,
+        "wires": [
+            [
+                "81c9a58e.f164e8"
+            ]
+        ]
+    },
+    {
+        "id": "81c9a58e.f164e8",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Creamos topic y payload",
+        "func": "if(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n msg1 = {}  \n msg2 = {}  \n msg3 = {}  \n msg4 = {} \n \n msg1.payload={\"level\":msg.payload}\n msg2.payload={\"level\":msg.payload}\n msg3.payload={\"level\":msg.payload}\n msg4.payload={\"level\":msg.payload}\n \n msg1.topic=\"infind/GRUPO2/ESP455863/led/cmd\";\n msg2.topic=\"infind/GRUPO2/ESP1122620/led/cmd\";\n msg3.topic=\"infind/GRUPO2/ESP1127184/led/cmd\";\n msg4.topic=\"infind/GRUPO2/ESP833748/led/cmd\";\n \n return [msg1, msg2, msg3, msg4];\n}else{\n msg.payload={\"level\":msg.payload}\n \n msg.topic=\"infind/GRUPO2/\"+global.get(\"ESP\")+\"/led/cmd\";\n \n return msg;\n}\n\n",
+        "outputs": 4,
+        "noerr": 0,
+        "x": 370,
+        "y": 2383,
+        "wires": [
+            [
+                "28c864ef.bf392c"
+            ],
+            [
+                "28c864ef.bf392c"
+            ],
+            [
+                "28c864ef.bf392c"
+            ],
+            [
+                "28c864ef.bf392c"
+            ]
+        ]
+    },
+    {
+        "id": "eb73c06c.04e97",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Cambiar intensidad LED",
+        "info": "",
+        "x": 130,
+        "y": 2283,
+        "wires": []
+    },
+    {
+        "id": "5390235f.0c772c",
+        "type": "inject",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "repeat": "1",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 110,
+        "y": 2483,
+        "wires": [
+            [
+                "283e2bcc.04f884"
+            ]
+        ]
+    },
+    {
+        "id": "283e2bcc.04f884",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Último valor",
+        "func": "if(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n    msg.payload={};\n}else{\n    msg.payload={\"CHIPID\": {\"$eq\": global.get(\"ESP\")}};\n}\n\nmsg.limit=1;\nmsg.sort = {\"date\" : -1}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 290,
+        "y": 2483,
+        "wires": [
+            [
+                "c81038cd.d8b558"
+            ]
+        ]
+    },
+    {
+        "id": "c81038cd.d8b558",
+        "type": "mongodb in",
+        "z": "6729fffb.0b33c",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "led",
+        "operation": "find",
+        "x": 530,
+        "y": 2483,
+        "wires": [
+            [
+                "7b9a2f3c.a9a58",
+                "76ca2bb5.ae56f4"
+            ]
+        ]
+    },
+    {
+        "id": "d7b0a526.d35f58",
+        "type": "template",
+        "z": "6729fffb.0b33c",
+        "name": "lista en formato html",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "{{#payload}}\n<h4>Última modificación: {{CHIPID}} - {{date}} </h4>\n{{/payload}}",
+        "output": "str",
+        "x": 1220,
+        "y": 180,
+        "wires": [
+            [
+                "9c0cd44f.91bfd8"
+            ]
+        ]
+    },
+    {
+        "id": "9c0cd44f.91bfd8",
+        "type": "ui_template",
+        "z": "6729fffb.0b33c",
+        "group": "c000e063.5ce24",
+        "name": "Fecha",
+        "order": 4,
+        "width": "9",
+        "height": "1",
+        "format": "<div ng-bind-html=\"msg.payload\"></div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "templateScope": "local",
+        "x": 1390,
+        "y": 180,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "ae3fd2b9.47e7b",
+        "type": "ui_gauge",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "group": "c000e063.5ce24",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Temperatura",
+        "label": "ºC",
+        "format": "{{msg.payload[0].DHT11.temp}}",
+        "min": 0,
+        "max": "40",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "x": 1010,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "37f9fbf9.e9fc24",
+        "type": "ui_gauge",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "group": "c000e063.5ce24",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "gtype": "donut",
+        "title": "Humedad",
+        "label": "%",
+        "format": "{{msg.payload[0].DHT11.hum}}",
+        "min": 0,
+        "max": "100",
+        "colors": [
+            "#06a2ae",
+            "#268dbf",
+            "#3004fd"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "x": 1000,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "cdf0fe00.cdb48",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Cambio fecha",
+        "func": "for (var i=0; i<msg.payload.length; i++){\n    fecha = msg.payload[i].date;\n    mes = fecha.getMonth() + 1;\n    dia = fecha.getDate();\n    hora = fecha.getHours();\n    minutos = fecha.getMinutes();\n    segundos = fecha.getSeconds();\n    if (mes<10) mes = \"0\" + mes;\n    if (dia<10) dia = \"0\" + dia;\n    if (hora<10) hora = \"0\" + hora;\n    if (minutos<10) minutos = \"0\" + minutos;  \n    if (segundos<10) segundos = \"0\" + segundos;    \n    fecha2 = dia + \"/\" + mes + \"/\" + fecha.getFullYear() + \" \" + hora + \":\" + minutos + \":\" + segundos;\n    msg.payload[i].date = fecha2;\n    \n    if(msg.payload[i].CHIPID==\"ESP455863\") msg.payload[i].CHIPID = \"ESPAlex\";\n    if(msg.payload[i].CHIPID==\"ESP1122620\") msg.payload[i].CHIPID = \"ESPManuel\";\n    if(msg.payload[i].CHIPID==\"ESP1127184\") msg.payload[i].CHIPID = \"ESPPablo\";\n    if(msg.payload[i].CHIPID==\"ESP833748\") msg.payload[i].CHIPID = \"ESPTeresa\";\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1020,
+        "y": 180,
+        "wires": [
+            [
+                "d7b0a526.d35f58"
+            ]
+        ]
+    },
+    {
+        "id": "8bcd816e.aa485",
+        "type": "template",
+        "z": "6729fffb.0b33c",
+        "name": "lista en formato html",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "{{#payload}}\n<h4>Última modificación: {{CHIPID}} - {{date}} </h4>\n{{/payload}}",
+        "output": "str",
+        "x": 1020,
+        "y": 2443,
+        "wires": [
+            [
+                "75f4d077.e1672"
+            ]
+        ]
+    },
+    {
+        "id": "75f4d077.e1672",
+        "type": "ui_template",
+        "z": "6729fffb.0b33c",
+        "group": "8a7efcfd.e115b",
+        "name": "Fecha LED",
+        "order": 3,
+        "width": "9",
+        "height": "1",
+        "format": "<div ng-bind-html=\"msg.payload\"></div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "templateScope": "local",
+        "x": 1210,
+        "y": 2443,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "7b9a2f3c.a9a58",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Cambio fecha",
+        "func": "for (var i=0; i<msg.payload.length; i++){\n    fecha = msg.payload[i].date;\n    mes = fecha.getMonth() + 1;\n    dia = fecha.getDate();\n    hora = fecha.getHours();\n    minutos = fecha.getMinutes();\n    segundos = fecha.getSeconds();\n    if (mes<10) mes = \"0\" + mes;\n    if (dia<10) dia = \"0\" + dia;\n    if (hora<10) hora = \"0\" + hora;\n    if (minutos<10) minutos = \"0\" + minutos;  \n    if (segundos<10) segundos = \"0\" + segundos;    \n    fecha2 = dia + \"/\" + mes + \"/\" + fecha.getFullYear() + \" \" + hora + \":\" + minutos + \":\" + segundos;\n    msg.payload[i].date = fecha2;\n    \n    if(msg.payload[i].CHIPID==\"ESP455863\") msg.payload[i].CHIPID = \"ESPAlex\";\n    if(msg.payload[i].CHIPID==\"ESP1122620\") msg.payload[i].CHIPID = \"ESPManuel\";\n    if(msg.payload[i].CHIPID==\"ESP1127184\") msg.payload[i].CHIPID = \"ESPPablo\";\n    if(msg.payload[i].CHIPID==\"ESP833748\") msg.payload[i].CHIPID = \"ESPTeresa\";\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 820,
+        "y": 2443,
+        "wires": [
+            [
+                "8bcd816e.aa485"
+            ]
+        ]
+    },
+    {
+        "id": "76ca2bb5.ae56f4",
+        "type": "ui_gauge",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "group": "8a7efcfd.e115b",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "gtype": "donut",
+        "title": "Intensidad del  LED ",
+        "label": "%",
+        "format": "{{msg.payload[0].led}}",
+        "min": "0",
+        "max": "100",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "x": 830,
+        "y": 2523,
+        "wires": []
+    },
+    {
+        "id": "3b5f9243.56a78e",
+        "type": "mqtt out",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "broker": "416b78bf.3cc358",
+        "x": 590,
+        "y": 2603,
+        "wires": []
+    },
+    {
+        "id": "436ab02f.4832f",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Creamos topic y payload",
+        "func": "if(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n msg1 = {}  \n msg2 = {}  \n msg3 = {}  \n msg4 = {} \n    \n msg1.payload={\"level\":msg.payload}\n msg2.payload={\"level\":msg.payload}\n msg3.payload={\"level\":msg.payload}\n msg4.payload={\"level\":msg.payload}\n \n msg1.topic=\"infind/GRUPO2/ESP455863/switch/cmd\";\n msg2.topic=\"infind/GRUPO2/ESP1122620/switch/cmd\";\n msg3.topic=\"infind/GRUPO2/ESP1127184/switch/cmd\";\n msg4.topic=\"infind/GRUPO2/ESP833748/switch/cmd\";\n \n return [msg1, msg2, msg3, msg4];\n}else{\n msg.payload={\"level\":msg.payload}\n \n msg.topic=\"infind/GRUPO2/\"+global.get(\"ESP\")+\"/switch/cmd\";\n return msg;\n}\n\n",
+        "outputs": 4,
+        "noerr": 0,
+        "x": 370,
+        "y": 2603,
+        "wires": [
+            [
+                "3b5f9243.56a78e"
+            ],
+            [
+                "3b5f9243.56a78e"
+            ],
+            [
+                "3b5f9243.56a78e"
+            ],
+            [
+                "3b5f9243.56a78e"
+            ]
+        ]
+    },
+    {
+        "id": "ac485526.cfc7b8",
+        "type": "ui_button",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "group": "8a7efcfd.e115b",
+        "order": 5,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Encender switch",
+        "tooltip": "Encender el switch de la placa.",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "1",
+        "payloadType": "str",
+        "topic": "",
+        "x": 100,
+        "y": 2583,
+        "wires": [
+            [
+                "436ab02f.4832f"
+            ]
+        ]
+    },
+    {
+        "id": "b6237ecd.393f1",
+        "type": "ui_button",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "group": "8a7efcfd.e115b",
+        "order": 6,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Apagar switch",
+        "tooltip": "Apagar el switch de la placa.",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "0",
+        "payloadType": "str",
+        "topic": "",
+        "x": 100,
+        "y": 2643,
+        "wires": [
+            [
+                "436ab02f.4832f"
+            ]
+        ]
+    },
+    {
+        "id": "cf40481c.aa4ea8",
+        "type": "inject",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "repeat": "1",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 110,
+        "y": 2723,
+        "wires": [
+            [
+                "528bb776.47de48"
+            ]
+        ]
+    },
+    {
+        "id": "528bb776.47de48",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Último valor",
+        "func": "if(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n    msg.payload={};\n}else{\n    msg.payload={\"CHIPID\": {\"$eq\": global.get(\"ESP\")}};\n}\n\nmsg.limit=1;\nmsg.sort = {\"date\" : -1}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 290,
+        "y": 2723,
+        "wires": [
+            [
+                "808532c.7fbd0d"
+            ]
+        ]
+    },
+    {
+        "id": "808532c.7fbd0d",
+        "type": "mongodb in",
+        "z": "6729fffb.0b33c",
+        "mongodb": "e54f2b5d.d165d8",
+        "name": "",
+        "collection": "switch",
+        "operation": "find",
+        "x": 540,
+        "y": 2723,
+        "wires": [
+            [
+                "6caf2824.d970d8",
+                "7f6bf201.6d339c"
+            ]
+        ]
+    },
+    {
+        "id": "80a493b4.ce10c",
+        "type": "template",
+        "z": "6729fffb.0b33c",
+        "name": "lista en formato html",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "handlebars",
+        "syntax": "mustache",
+        "template": "{{#payload}}\n<h4>Última modificación: {{CHIPID}} - {{date}} </h4>\n{{/payload}}",
+        "output": "str",
+        "x": 1040,
+        "y": 2683,
+        "wires": [
+            [
+                "fe2894ed.09f768"
+            ]
+        ]
+    },
+    {
+        "id": "fe2894ed.09f768",
+        "type": "ui_template",
+        "z": "6729fffb.0b33c",
+        "group": "8a7efcfd.e115b",
+        "name": "Fecha Switch",
+        "order": 7,
+        "width": "9",
+        "height": "1",
+        "format": "<div ng-bind-html=\"msg.payload\"></div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "templateScope": "local",
+        "x": 1240,
+        "y": 2683,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "6caf2824.d970d8",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Cambio fecha",
+        "func": "for (var i=0; i<msg.payload.length; i++){\n    fecha = msg.payload[i].date;\n    mes = fecha.getMonth() + 1;\n    dia = fecha.getDate();\n    hora = fecha.getHours();\n    minutos = fecha.getMinutes();\n    segundos = fecha.getSeconds();\n    if (mes<10) mes = \"0\" + mes;\n    if (dia<10) dia = \"0\" + dia;\n    if (hora<10) hora = \"0\" + hora;\n    if (minutos<10) minutos = \"0\" + minutos;  \n    if (segundos<10) segundos = \"0\" + segundos;    \n    fecha2 = dia + \"/\" + mes + \"/\" + fecha.getFullYear() + \" \" + hora + \":\" + minutos + \":\" + segundos;\n    msg.payload[i].date = fecha2;\n    \n    if(msg.payload[i].CHIPID==\"ESP455863\") msg.payload[i].CHIPID = \"ESPAlex\";\n    if(msg.payload[i].CHIPID==\"ESP1122620\") msg.payload[i].CHIPID = \"ESPManuel\";\n    if(msg.payload[i].CHIPID==\"ESP1127184\") msg.payload[i].CHIPID = \"ESPPablo\";\n    if(msg.payload[i].CHIPID==\"ESP833748\") msg.payload[i].CHIPID = \"ESPTeresa\";\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 840,
+        "y": 2683,
+        "wires": [
+            [
+                "80a493b4.ce10c"
+            ]
+        ]
+    },
+    {
+        "id": "3ca5886b.765078",
+        "type": "ui_led",
+        "z": "6729fffb.0b33c",
+        "group": "8a7efcfd.e115b",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "label": "Switch",
+        "labelPlacement": "left",
+        "labelAlignment": "left",
+        "colorForValue": [
+            {
+                "color": "blue",
+                "value": "1",
+                "valueType": "num"
+            },
+            {
+                "color": "grey",
+                "value": "0",
+                "valueType": "num"
+            }
+        ],
+        "allowColorForValueInMessage": false,
+        "name": "Switch",
+        "x": 1030,
+        "y": 2758,
+        "wires": []
+    },
+    {
+        "id": "f1ce1759.bef9a8",
+        "type": "link in",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "links": [
+            "9c1e0ed9.41a76"
+        ],
+        "x": 175,
+        "y": 2538,
+        "wires": [
+            [
+                "283e2bcc.04f884",
+                "528bb776.47de48"
+            ]
+        ]
+    },
+    {
+        "id": "7f6bf201.6d339c",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Coger información",
+        "func": "msg.payload = msg.payload[0].switch;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 850,
+        "y": 2758,
+        "wires": [
+            [
+                "3ca5886b.765078"
+            ]
+        ]
+    },
+    {
+        "id": "1da6fcd8.659033",
+        "type": "ui_button",
+        "z": "6729fffb.0b33c",
+        "name": "Boton actualizar",
+        "group": "c000e063.5ce24",
+        "order": 10,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Actualizar",
+        "tooltip": "Envía la configuración de modo y tiempo",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "",
+        "payloadType": "date",
+        "topic": "",
+        "x": 120,
+        "y": 3060,
+        "wires": [
+            [
+                "27137b99.b902f4"
+            ]
+        ]
+    },
+    {
+        "id": "d1c1baf.a323848",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Store ledTime",
+        "func": "\nflow.set(\"ledTime\", msg.payload)\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 360,
+        "y": 2980,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "fd59e1db.c8c41",
+        "type": "ui_text_input",
+        "z": "6729fffb.0b33c",
+        "name": "TiempoLed",
+        "label": "Periodo entre cambios de led (ms)",
+        "tooltip": "",
+        "group": "c000e063.5ce24",
+        "order": 7,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "mode": "number",
+        "delay": 300,
+        "topic": "",
+        "x": 110,
+        "y": 2980,
+        "wires": [
+            [
+                "d1c1baf.a323848"
+            ]
+        ]
+    },
+    {
+        "id": "524d7544.bfa0dc",
+        "type": "ui_button",
+        "z": "6729fffb.0b33c",
+        "name": "Check updates",
+        "group": "c000e063.5ce24",
+        "order": 11,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Comprobar actualizaciones",
+        "tooltip": "Se manda un mensaje MQTT que indica al dispositivo que debe comprobar las actualizaciones disponibles",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "1",
+        "payloadType": "str",
+        "topic": "",
+        "x": 120,
+        "y": 3150,
+        "wires": [
+            [
+                "16501dae.d24e32"
+            ]
+        ]
+    },
+    {
+        "id": "b7781431.223648",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Store otaTime",
+        "func": "\nflow.set(\"otaTime\", msg.payload)\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 360,
+        "y": 2920,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "3a85c1c0.271f2e",
+        "type": "ui_text_input",
+        "z": "6729fffb.0b33c",
+        "name": "TiempoOta",
+        "label": "Periodo de comprobación de actualizaciones (min)",
+        "tooltip": "",
+        "group": "c000e063.5ce24",
+        "order": 8,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "mode": "number",
+        "delay": 300,
+        "topic": "",
+        "x": 110,
+        "y": 2920,
+        "wires": [
+            [
+                "b7781431.223648"
+            ]
+        ]
+    },
+    {
+        "id": "757a31f1.99cae",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Store datosTime",
+        "func": "\nflow.set(\"datosTime\", msg.payload)\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 360,
+        "y": 2860,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "64e54a56.d056a4",
+        "type": "ui_text_input",
+        "z": "6729fffb.0b33c",
+        "name": "TiempoDatos",
+        "label": "Perido de envio de datos (s)",
+        "tooltip": "",
+        "group": "c000e063.5ce24",
+        "order": 9,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "mode": "number",
+        "delay": 300,
+        "topic": "",
+        "x": 110,
+        "y": 2860,
+        "wires": [
+            [
+                "757a31f1.99cae"
+            ]
+        ]
+    },
+    {
+        "id": "4e6594ba.95ae0c",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "OTA",
+        "info": "",
+        "x": 70,
+        "y": 2794,
+        "wires": []
+    },
+    {
+        "id": "7a40d0cc.26676",
+        "type": "mqtt out",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "broker": "416b78bf.3cc358",
+        "x": 590,
+        "y": 3050,
+        "wires": []
+    },
+    {
+        "id": "27137b99.b902f4",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Creamos topic y payload",
+        "func": "envia = flow.get(\"datosTime\")\nactualiza = flow.get(\"otaTime\")\nvelocidad = flow.get(\"ledTime\")\n\nif(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n msg1 = {}  \n msg2 = {}  \n msg3 = {}  \n msg4 = {} \n \n msg1.payload = {envia:envia, actualiza:actualiza, velocidad:velocidad}\n msg2.payload = {envia:envia, actualiza:actualiza, velocidad:velocidad}\n msg3.payload = {envia:envia, actualiza:actualiza, velocidad:velocidad}\n msg4.payload = {envia:envia, actualiza:actualiza, velocidad:velocidad} \n \n msg1.topic=\"infind/GRUPO2/ESP455863/config\";\n msg2.topic=\"infind/GRUPO2/ESP1122620/config\";\n msg3.topic=\"infind/GRUPO2/ESP1127184/config\";\n msg4.topic=\"infind/GRUPO2/ESP833748/config\";\n \n return [msg1, msg2, msg3, msg4];\n}else{\n msg.payload = {envia:envia, actualiza:actualiza, velocidad:velocidad}\n \n msg.topic=\"infind/GRUPO2/\"+global.get(\"ESP\")+\"/config\";\n \n return msg;\n}\n\n",
+        "outputs": 4,
+        "noerr": 0,
+        "x": 390,
+        "y": 3060,
+        "wires": [
+            [
+                "7a40d0cc.26676"
+            ],
+            [
+                "7a40d0cc.26676"
+            ],
+            [
+                "7a40d0cc.26676"
+            ],
+            [
+                "7a40d0cc.26676"
+            ]
+        ]
+    },
+    {
+        "id": "e7b74975.e1e1b8",
+        "type": "mqtt out",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "broker": "416b78bf.3cc358",
+        "x": 590,
+        "y": 3150,
+        "wires": []
+    },
+    {
+        "id": "16501dae.d24e32",
+        "type": "function",
+        "z": "6729fffb.0b33c",
+        "name": "Creamos topic y payload",
+        "func": "if(global.get(\"ESP\") === null || global.get(\"ESP\") === \"0\"){\n msg1 = {}  \n msg2 = {}  \n msg3 = {}  \n msg4 = {} \n \n msg1.payload = {actualiza:1}\n msg2.payload = {actualiza:1}\n msg3.payload = {actualiza:1}\n msg4.payload = {actualiza:1}\n \n msg1.topic=\"infind/GRUPO2/ESP455863/FOTA\";\n msg2.topic=\"infind/GRUPO2/ESP1122620/FOTA\";\n msg3.topic=\"infind/GRUPO2/ESP1127184/FOTA\";\n msg4.topic=\"infind/GRUPO2/ESP833748/FOTA\";\n \n return [msg1, msg2, msg3, msg4];\n}else{\n msg.payload = {actualiza:1}\n \n msg.topic=\"infind/GRUPO2/\"+global.get(\"ESP\")+\"/FOTA\";\n \n return msg;\n}\n\n",
+        "outputs": 4,
+        "noerr": 0,
+        "x": 390,
+        "y": 3150,
+        "wires": [
+            [
+                "e7b74975.e1e1b8"
+            ],
+            [
+                "e7b74975.e1e1b8"
+            ],
+            [
+                "e7b74975.e1e1b8"
+            ],
+            [
+                "e7b74975.e1e1b8"
+            ]
+        ]
+    },
+    {
+        "id": "b79fa506.660b98",
+        "type": "comment",
+        "z": "6729fffb.0b33c",
+        "name": "Máximos y mínimos.",
+        "info": "",
+        "x": 110,
+        "y": 3234,
+        "wires": []
+    },
+    {
+        "id": "a3309e98.69cb8",
+        "type": "ui_numeric",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "label": "Temperatura máxima",
+        "tooltip": "",
+        "group": "8a7efcfd.e115b",
+        "order": 9,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "topic": "",
+        "format": "{{value}}",
+        "min": "20",
+        "max": "40",
+        "step": 1,
+        "x": 320,
+        "y": 3300,
+        "wires": [
+            [
+                "f1cc2d64.40fb2"
+            ]
+        ]
+    },
+    {
+        "id": "fc2071d1.225ff",
+        "type": "ui_numeric",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "label": "Temperatura mínima",
+        "tooltip": "",
+        "group": "8a7efcfd.e115b",
+        "order": 10,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "topic": "",
+        "format": "{{value}}",
+        "min": "0",
+        "max": "20",
+        "step": 1,
+        "x": 320,
+        "y": 3360,
+        "wires": [
+            [
+                "a6b7dc50.a2469"
+            ]
+        ]
+    },
+    {
+        "id": "e3970f79.2c07f",
+        "type": "ui_numeric",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "label": "Humedad máxima",
+        "tooltip": "",
+        "group": "8a7efcfd.e115b",
+        "order": 11,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "topic": "",
+        "format": "{{value}}",
+        "min": "100",
+        "max": "200",
+        "step": 1,
+        "x": 310,
+        "y": 3420,
+        "wires": [
+            [
+                "8df8d5b5.782548"
+            ]
+        ]
+    },
+    {
+        "id": "ff99cdc0.5ddf4",
+        "type": "ui_numeric",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "label": "Humedad mínima",
+        "tooltip": "",
+        "group": "8a7efcfd.e115b",
+        "order": 12,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "topic": "",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "100",
+        "step": 1,
+        "x": 310,
+        "y": 3480,
+        "wires": [
+            [
+                "61226e95.79c37"
+            ]
+        ]
+    },
+    {
+        "id": "f1cc2d64.40fb2",
+        "type": "change",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "maxTemp",
+                "pt": "global",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 620,
+        "y": 3300,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "a6b7dc50.a2469",
+        "type": "change",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "minTemp",
+                "pt": "global",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 610,
+        "y": 3360,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "8df8d5b5.782548",
+        "type": "change",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "maxHum",
+                "pt": "global",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 590,
+        "y": 3420,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "61226e95.79c37",
+        "type": "change",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "minHum",
+                "pt": "global",
+                "to": "payload",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 590,
+        "y": 3480,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "840f46c8.8b10b8",
+        "type": "ui_template",
+        "z": "6729fffb.0b33c",
+        "group": "c000e063.5ce24",
+        "name": "Título",
+        "order": 6,
+        "width": "9",
+        "height": "1",
+        "format": "<h4>Cambiar valores de configuración y OTA</h4>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "templateScope": "local",
+        "x": 590,
+        "y": 2926,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "aa609e10.a746e",
+        "type": "ui_template",
+        "z": "6729fffb.0b33c",
+        "group": "8a7efcfd.e115b",
+        "name": "Título",
+        "order": 8,
+        "width": "9",
+        "height": "1",
+        "format": "<h4>Cambiar valores máximos y mínimos para avisos</h4>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "templateScope": "local",
+        "x": 810,
+        "y": 3386,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "56ed2345.6d525c",
+        "type": "inject",
+        "z": "6729fffb.0b33c",
+        "name": "",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 100,
+        "y": 3380,
+        "wires": [
+            [
+                "fc2071d1.225ff",
+                "ff99cdc0.5ddf4"
+            ]
+        ]
+    },
+    {
+        "id": "e54f2b5d.d165d8",
+        "type": "mongodb",
+        "z": "",
+        "hostname": "iot.ac.uma.es",
+        "port": "27017",
+        "db": "IOT2",
+        "name": ""
+    },
+    {
+        "id": "53e0f334.d04d9c",
+        "type": "ui_group",
+        "z": "",
+        "name": "Consulta por rangos",
+        "tab": "3fc37703.ad2cd8",
+        "order": 2,
+        "disp": true,
+        "width": "9",
+        "collapse": false
+    },
+    {
+        "id": "34cbacae.160414",
+        "type": "ui_group",
+        "z": "",
+        "name": "LOG",
+        "tab": "3fc37703.ad2cd8",
+        "order": 3,
+        "disp": true,
+        "width": "9",
+        "collapse": false
+    },
+    {
+        "id": "c000e063.5ce24",
+        "type": "ui_group",
+        "z": "",
+        "name": "Datos ESP",
+        "tab": "3fc37703.ad2cd8",
+        "order": 1,
+        "disp": true,
+        "width": "9",
+        "collapse": false
+    },
+    {
+        "id": "416b78bf.3cc358",
+        "type": "mqtt-broker",
+        "z": "",
+        "name": "",
+        "broker": "Iot.ac.uma.es",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "compatmode": true,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "8a7efcfd.e115b",
+        "type": "ui_group",
+        "z": "",
+        "name": "Configuración del LED y switch",
+        "tab": "3fc37703.ad2cd8",
+        "order": 4,
+        "disp": true,
+        "width": "9",
+        "collapse": false
+    },
+    {
+        "id": "3fc37703.ad2cd8",
+        "type": "ui_tab",
+        "z": "",
+        "name": "Dashboard",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    }
+]
