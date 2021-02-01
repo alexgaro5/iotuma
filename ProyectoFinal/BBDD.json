@@ -1,0 +1,445 @@
+[
+    {
+        "id": "5d557f61.b96f",
+        "type": "tab",
+        "label": "BBDD",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "2a5e19b7.6487de",
+        "type": "mqtt in",
+        "z": "5d557f61.b96f",
+        "name": "",
+        "topic": "infind/GRUPO2/+/led/status",
+        "qos": "2",
+        "broker": "aff138bf.4f3b1",
+        "x": 200,
+        "y": 100,
+        "wires": [
+            [
+                "74a5c4c1.8d5374"
+            ]
+        ]
+    },
+    {
+        "id": "25b781e4.08ece6",
+        "type": "comment",
+        "z": "5d557f61.b96f",
+        "name": "BBDD",
+        "info": "",
+        "x": 110,
+        "y": 45,
+        "wires": []
+    },
+    {
+        "id": "55b09def.618734",
+        "type": "mongodb out",
+        "z": "5d557f61.b96f",
+        "mongodb": "63ce8403.030574",
+        "name": "",
+        "collection": "led",
+        "payonly": true,
+        "upsert": false,
+        "multi": false,
+        "operation": "store",
+        "x": 1010,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "21e658b1.94ecd",
+        "type": "mqtt in",
+        "z": "5d557f61.b96f",
+        "name": "",
+        "topic": "infind/GRUPO2/+/switch/status",
+        "qos": "2",
+        "broker": "aff138bf.4f3b1",
+        "x": 210,
+        "y": 180,
+        "wires": [
+            [
+                "f41c83c8.a3b3e8"
+            ]
+        ]
+    },
+    {
+        "id": "34d5cb4b.e23bc4",
+        "type": "mongodb out",
+        "z": "5d557f61.b96f",
+        "mongodb": "63ce8403.030574",
+        "name": "",
+        "collection": "switch",
+        "payonly": true,
+        "upsert": false,
+        "multi": false,
+        "operation": "store",
+        "x": 1020,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "8b21152e.fa0ca",
+        "type": "mqtt in",
+        "z": "5d557f61.b96f",
+        "name": "",
+        "topic": "infind/GRUPO2/+/errores",
+        "qos": "2",
+        "broker": "aff138bf.4f3b1",
+        "x": 190,
+        "y": 260,
+        "wires": [
+            [
+                "a589917b.42c49"
+            ]
+        ]
+    },
+    {
+        "id": "f0256fbc.8fbe3",
+        "type": "mongodb out",
+        "z": "5d557f61.b96f",
+        "mongodb": "63ce8403.030574",
+        "name": "",
+        "collection": "error",
+        "payonly": true,
+        "upsert": false,
+        "multi": false,
+        "operation": "store",
+        "x": 1000,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "48213e2d.ea2968",
+        "type": "mqtt in",
+        "z": "5d557f61.b96f",
+        "name": "",
+        "topic": "infind/GRUPO2/+/datos",
+        "qos": "2",
+        "broker": "aff138bf.4f3b1",
+        "x": 180,
+        "y": 340,
+        "wires": [
+            [
+                "5efe127d.75162c"
+            ]
+        ]
+    },
+    {
+        "id": "7322e744.06247",
+        "type": "mongodb out",
+        "z": "5d557f61.b96f",
+        "mongodb": "63ce8403.030574",
+        "name": "",
+        "collection": "datos",
+        "payonly": true,
+        "upsert": false,
+        "multi": false,
+        "operation": "store",
+        "x": 1010,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "792cf1fb.32933",
+        "type": "mqtt in",
+        "z": "5d557f61.b96f",
+        "name": "",
+        "topic": "infind/GRUPO2/+/conexion",
+        "qos": "2",
+        "broker": "aff138bf.4f3b1",
+        "x": 200,
+        "y": 420,
+        "wires": [
+            [
+                "c3d899e0.dd5c5"
+            ]
+        ]
+    },
+    {
+        "id": "d20f2cd5.de17e",
+        "type": "mongodb out",
+        "z": "5d557f61.b96f",
+        "mongodb": "63ce8403.030574",
+        "name": "",
+        "collection": "conexion",
+        "payonly": true,
+        "upsert": false,
+        "multi": false,
+        "operation": "store",
+        "x": 1020,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "748269b0.aa9a",
+        "type": "function",
+        "z": "5d557f61.b96f",
+        "name": "Poner fecha",
+        "func": "msg.payload.date = new Date();\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 770,
+        "y": 100,
+        "wires": [
+            [
+                "55b09def.618734"
+            ]
+        ]
+    },
+    {
+        "id": "74a5c4c1.8d5374",
+        "type": "json",
+        "z": "5d557f61.b96f",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 450,
+        "y": 100,
+        "wires": [
+            [
+                "50fa257b.92829c"
+            ]
+        ]
+    },
+    {
+        "id": "472e5f05.21d3b",
+        "type": "function",
+        "z": "5d557f61.b96f",
+        "name": "Poner fecha",
+        "func": "msg.payload.date = new Date();\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 770,
+        "y": 180,
+        "wires": [
+            [
+                "34d5cb4b.e23bc4"
+            ]
+        ]
+    },
+    {
+        "id": "f41c83c8.a3b3e8",
+        "type": "json",
+        "z": "5d557f61.b96f",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 450,
+        "y": 180,
+        "wires": [
+            [
+                "7b60c606.6920e"
+            ]
+        ]
+    },
+    {
+        "id": "5410fa1c.d5909c",
+        "type": "function",
+        "z": "5d557f61.b96f",
+        "name": "Poner fecha",
+        "func": "msg.payload.date = new Date();\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 770,
+        "y": 260,
+        "wires": [
+            [
+                "f0256fbc.8fbe3"
+            ]
+        ]
+    },
+    {
+        "id": "a589917b.42c49",
+        "type": "json",
+        "z": "5d557f61.b96f",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 450,
+        "y": 260,
+        "wires": [
+            [
+                "7965ead8.2371d4"
+            ]
+        ]
+    },
+    {
+        "id": "d231759f.7253f",
+        "type": "function",
+        "z": "5d557f61.b96f",
+        "name": "Poner fecha",
+        "func": "msg.payload.date = new Date();\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 770,
+        "y": 340,
+        "wires": [
+            [
+                "7322e744.06247"
+            ]
+        ]
+    },
+    {
+        "id": "5efe127d.75162c",
+        "type": "json",
+        "z": "5d557f61.b96f",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 450,
+        "y": 340,
+        "wires": [
+            [
+                "a33ea9bc.e1075"
+            ]
+        ]
+    },
+    {
+        "id": "665e599f.94b16",
+        "type": "function",
+        "z": "5d557f61.b96f",
+        "name": "Poner fecha",
+        "func": "msg.payload.date = new Date();\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 770,
+        "y": 420,
+        "wires": [
+            [
+                "d20f2cd5.de17e"
+            ]
+        ]
+    },
+    {
+        "id": "c3d899e0.dd5c5",
+        "type": "json",
+        "z": "5d557f61.b96f",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 450,
+        "y": 420,
+        "wires": [
+            [
+                "974a5059.c1f928"
+            ]
+        ]
+    },
+    {
+        "id": "50fa257b.92829c",
+        "type": "function",
+        "z": "5d557f61.b96f",
+        "name": "WhiteList",
+        "func": "if(msg.payload.CHIPID === \"ESP1122620\" || msg.payload.CHIPID === \"ESP833748\"  || msg.payload.CHIPID === \"ESP1127184\" || msg.payload.CHIPID === \"ESP455863\"){\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 600,
+        "y": 100,
+        "wires": [
+            [
+                "748269b0.aa9a"
+            ]
+        ]
+    },
+    {
+        "id": "7b60c606.6920e",
+        "type": "function",
+        "z": "5d557f61.b96f",
+        "name": "WhiteList",
+        "func": "if(msg.payload.CHIPID === \"ESP1122620\" || msg.payload.CHIPID === \"ESP833748\"  || msg.payload.CHIPID === \"ESP1127184\" || msg.payload.CHIPID === \"ESP455863\"){\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 600,
+        "y": 180,
+        "wires": [
+            [
+                "472e5f05.21d3b"
+            ]
+        ]
+    },
+    {
+        "id": "7965ead8.2371d4",
+        "type": "function",
+        "z": "5d557f61.b96f",
+        "name": "WhiteList",
+        "func": "if(msg.payload.CHIPID === \"ESP1122620\" || msg.payload.CHIPID === \"ESP833748\"  || msg.payload.CHIPID === \"ESP1127184\" || msg.payload.CHIPID === \"ESP455863\"){\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 600,
+        "y": 260,
+        "wires": [
+            [
+                "5410fa1c.d5909c"
+            ]
+        ]
+    },
+    {
+        "id": "a33ea9bc.e1075",
+        "type": "function",
+        "z": "5d557f61.b96f",
+        "name": "WhiteList",
+        "func": "if(msg.payload.CHIPID === \"ESP1122620\" || msg.payload.CHIPID === \"ESP833748\"  || msg.payload.CHIPID === \"ESP1127184\" || msg.payload.CHIPID === \"ESP455863\"){\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 600,
+        "y": 340,
+        "wires": [
+            [
+                "d231759f.7253f"
+            ]
+        ]
+    },
+    {
+        "id": "974a5059.c1f928",
+        "type": "function",
+        "z": "5d557f61.b96f",
+        "name": "WhiteList",
+        "func": "if(msg.payload.CHIPID === \"ESP1122620\" || msg.payload.CHIPID === \"ESP833748\"  || msg.payload.CHIPID === \"ESP1127184\" || msg.payload.CHIPID === \"ESP455863\"){\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 600,
+        "y": 420,
+        "wires": [
+            [
+                "665e599f.94b16"
+            ]
+        ]
+    },
+    {
+        "id": "aff138bf.4f3b1",
+        "type": "mqtt-broker",
+        "z": "",
+        "name": "",
+        "broker": "Iot.ac.uma.es",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "compatmode": true,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "63ce8403.030574",
+        "type": "mongodb",
+        "z": "",
+        "hostname": "iot.ac.uma.es",
+        "port": "27017",
+        "db": "IOT2",
+        "name": ""
+    }
+]
