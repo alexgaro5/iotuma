@@ -1,0 +1,713 @@
+[
+    {
+        "id": "5cb43f3a.731428",
+        "type": "tab",
+        "label": "TelegramFinal",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "24bf7c4a.f9303c",
+        "type": "debug",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 370,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "97457ff.4c88d",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Mensaje bienvenida",
+        "func": "if (msg.payload.content.substring(0, 1) != \"/\") {\n    msg.payload.content = \"Hola \" + msg.originalMessage.from.first_name + \", soy el bot del Grupo 2 de IoT. Puedo responderte a estos comandos:\\n\" + \n    \"/start\\n\" + \n    \"/statusLED [ESP]\\n\" + \n    \"/statusSwitch [ESP]\\n\" + \n    \"/values [ESP] [number]\\n\" + \n    \"/changeLED [ESP] [value]\\n\" + \n    \"/changeSwitch [ESP] [value]\\n\" +\n    \"[ESP] puede ser el nombre del propietario o el chipId (ESPx) de la placa. Si queda vacío afectará a todas.\\n\" +\n    \"[number] es el número de valores a obtener.\\n\" +\n    \"[value] es el valor que se quiere asignar.\\n\" +\n    \"Para LED los valores pueden ir de 0 (apagado) a 100 (máxima intensidad).\\n\" +\n    \"Para Switch los valores pueden ser 0 (apagado) o 1 (encendido).\\n\\n\" +\n    \"Alejandro: ESP455863\\n\" +\n    \"Manuel: ESP1122620\\n\" +\n    \"Pablo: ESP1127184\\n\" +\n    \"Teresa: ESP833748\";\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 420,
+        "y": 180,
+        "wires": [
+            [
+                "decf97f9.97e8a",
+                "92995bf3.2bfce8"
+            ]
+        ]
+    },
+    {
+        "id": "480db8b0.170a08",
+        "type": "telegram receiver",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "bot": "c898c788.a2ecd",
+        "saveDataDir": "",
+        "filterCommands": false,
+        "x": 160,
+        "y": 140,
+        "wires": [
+            [
+                "24bf7c4a.f9303c",
+                "97457ff.4c88d"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "46ac1a5b.8b4d94",
+        "type": "telegram command",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "command": "/start",
+        "bot": "c898c788.a2ecd",
+        "strict": false,
+        "hasresponse": false,
+        "useRegex": false,
+        "x": 130,
+        "y": 200,
+        "wires": [
+            [
+                "97457ff.4c88d"
+            ]
+        ]
+    },
+    {
+        "id": "decf97f9.97e8a",
+        "type": "telegram sender",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "bot": "c898c788.a2ecd",
+        "x": 680,
+        "y": 180,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "92995bf3.2bfce8",
+        "type": "debug",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 650,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "bd6931c7.34b938",
+        "type": "comment",
+        "z": "5cb43f3a.731428",
+        "name": "Mensaje de bienvenida",
+        "info": "",
+        "x": 160,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "6afce04f.70678",
+        "type": "telegram command",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "command": "/statusLED",
+        "bot": "c898c788.a2ecd",
+        "strict": false,
+        "hasresponse": false,
+        "useRegex": false,
+        "x": 140,
+        "y": 360,
+        "wires": [
+            [
+                "68440a63.e842e4"
+            ]
+        ]
+    },
+    {
+        "id": "9f2ed859.c13fb",
+        "type": "telegram command",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "command": "/values",
+        "bot": "c898c788.a2ecd",
+        "strict": false,
+        "hasresponse": false,
+        "useRegex": false,
+        "x": 130,
+        "y": 780,
+        "wires": [
+            [
+                "285c4d3b.034882"
+            ]
+        ]
+    },
+    {
+        "id": "f653d666.14ab58",
+        "type": "telegram command",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "command": "/changeLED",
+        "bot": "c898c788.a2ecd",
+        "strict": false,
+        "hasresponse": false,
+        "useRegex": false,
+        "x": 150,
+        "y": 1020,
+        "wires": [
+            [
+                "7fa635a.e2dad4c"
+            ]
+        ]
+    },
+    {
+        "id": "1993475e.57cc99",
+        "type": "comment",
+        "z": "5cb43f3a.731428",
+        "name": "Estado de los actuadores",
+        "info": "",
+        "x": 170,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "9f0f5a60.d88db",
+        "type": "mongodb in",
+        "z": "5cb43f3a.731428",
+        "mongodb": "6df5c12c.a685c8",
+        "name": "",
+        "collection": "led",
+        "operation": "find",
+        "x": 450,
+        "y": 360,
+        "wires": [
+            [
+                "7def66a7.6637c"
+            ]
+        ]
+    },
+    {
+        "id": "68440a63.e842e4",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Último registro",
+        "func": "let msg_split = msg.originalMessage.text.split(\" \");\n\nif (msg_split.length > 1) {\n    if (msg_split[1] == \"Alejandro\") msg_split[1] = \"ESP455863\";\n    if (msg_split[1] == \"Manual\") msg_split[1] = \"ESP1122620\";\n    if (msg_split[1] == \"Pablo\") msg_split[1] = \"ESP1127184\";\n    if (msg_split[1] == \"Teresa\") msg_split[1] = \"ESP833748\";\n    \n    msg.limit = 1;\n    msg.sort = { \"date\": -1 };\n    msg.telegram = msg.payload;\n    msg.payload = { \"CHIPID\": { \"$eq\": msg_split[1] } };\n    \n    return msg;\n} else {\n    msg1 = {};\n    msg2 = {};\n    msg3 = {};\n    msg4 = {};\n    \n    msg1.limit = 1;\n    msg1.sort = { \"date\": -1 };\n    msg1.telegram = msg.payload;\n    msg1.payload = { \"CHIPID\": { \"$eq\": \"ESP455863\" } };\n    \n    msg2.limit = 1;\n    msg2.sort = { \"date\": -1 };\n    msg2.telegram = msg.payload;\n    msg2.payload = { \"CHIPID\": { \"$eq\": \"ESP1122620\" } };\n\n    msg3.limit = 1;\n    msg3.sort = { \"date\": -1 };\n    msg3.telegram = msg.payload;\n    msg3.payload = { \"CHIPID\": { \"$eq\": \"ESP1127184\" } };\n    \n    msg4.limit = 1;\n    msg4.sort = { \"date\": -1 };\n    msg4.telegram = msg.payload;\n    msg4.payload = { \"CHIPID\": { \"$eq\": \"ESP833748\" } };\n    \n    return [msg1, msg2, msg3, msg4];\n}",
+        "outputs": 4,
+        "noerr": 0,
+        "x": 260,
+        "y": 440,
+        "wires": [
+            [
+                "9f0f5a60.d88db"
+            ],
+            [
+                "9f0f5a60.d88db"
+            ],
+            [
+                "9f0f5a60.d88db"
+            ],
+            [
+                "9f0f5a60.d88db"
+            ]
+        ]
+    },
+    {
+        "id": "e0ef46f3.0d94",
+        "type": "telegram command",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "command": "/statusSwitch",
+        "bot": "c898c788.a2ecd",
+        "strict": false,
+        "hasresponse": false,
+        "useRegex": false,
+        "x": 150,
+        "y": 520,
+        "wires": [
+            [
+                "2ab0e14b.25f686"
+            ]
+        ]
+    },
+    {
+        "id": "7def66a7.6637c",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Mensaje",
+        "func": "if (msg.payload[0].CHIPID == \"ESP455863\") msg.payload[0].CHIPID = \"Alejandro\";\nif (msg.payload[0].CHIPID == \"ESP1122620\") msg.payload[0].CHIPID = \"Manuel\";\nif (msg.payload[0].CHIPID == \"ESP1127184\") msg.payload[0].CHIPID = \"Pablo\";\nif (msg.payload[0].CHIPID == \"ESP833748\") msg.payload[0].CHIPID = \"Teresa\";\n\nvar message = \"Estado del LED de \" + msg.payload[0].CHIPID + \": \" + msg.payload[0].led;\n\nmsg.payload = msg.telegram;\nmsg.payload.content = message;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 560,
+        "y": 440,
+        "wires": [
+            [
+                "289e3cb1.1d4f4c"
+            ]
+        ]
+    },
+    {
+        "id": "289e3cb1.1d4f4c",
+        "type": "telegram sender",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "bot": "c898c788.a2ecd",
+        "x": 800,
+        "y": 520,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "285c4d3b.034882",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Últimos registro",
+        "func": "let msg_split = msg.originalMessage.text.split(\" \");\n\nif (msg_split.length > 2) {\n    if (msg_split[1] == \"Alejandro\") msg_split[1] = \"ESP455863\";\n    if (msg_split[1] == \"Manuel\") msg_split[1] = \"ESP1122620\";\n    if (msg_split[1] == \"Pablo\") msg_split[1] = \"ESP1127184\";\n    if (msg_split[1] == \"Teresa\") msg_split[1] = \"ESP833748\";\n    \n    msg.limit = msg_split[2];\n    msg.sort = { \"date\": -1 };\n    msg.telegram = msg.payload;\n    msg.payload = { \"CHIPID\": { \"$eq\": msg_split[1] } };\n    \n    return msg;\n} else if (msg_split.length > 1 && !isNaN(Number(msg_split[1]))) {\n    msg1 = {};\n    msg2 = {};\n    msg3 = {};\n    msg4 = {};\n    \n    msg1.limit = Number(msg_split[1]);\n    msg1.sort = { \"date\": -1 };\n    msg1.telegram = msg.payload;\n    msg1.payload = { \"CHIPID\": { \"$eq\": \"ESP455863\" } };\n    \n    msg2.limit = Number(msg_split[1]);\n    msg2.sort = { \"date\": -1 };\n    msg2.telegram = msg.payload;\n    msg2.payload = { \"CHIPID\": { \"$eq\": \"ESP1122620\" } };\n\n    msg3.limit = Number(msg_split[1]);\n    msg3.sort = { \"date\": -1 };\n    msg3.telegram = msg.payload;\n    msg3.payload = { \"CHIPID\": { \"$eq\": \"ESP1127184\" } };\n    \n    msg4.limit = Number(msg_split[1]);\n    msg4.sort = { \"date\": -1 };\n    msg4.telegram = msg.payload;\n    msg4.payload = { \"CHIPID\": { \"$eq\": \"ESP833748\" } };\n    \n    return [msg1, msg2, msg3, msg4];\n}",
+        "outputs": 4,
+        "noerr": 0,
+        "x": 320,
+        "y": 780,
+        "wires": [
+            [
+                "4e437efc.17f1d8"
+            ],
+            [
+                "4e437efc.17f1d8"
+            ],
+            [
+                "4e437efc.17f1d8"
+            ],
+            [
+                "4e437efc.17f1d8"
+            ]
+        ]
+    },
+    {
+        "id": "acec528e.f508",
+        "type": "comment",
+        "z": "5cb43f3a.731428",
+        "name": "Últimos valores de los sensores",
+        "info": "",
+        "x": 190,
+        "y": 700,
+        "wires": []
+    },
+    {
+        "id": "1ef9bdf9.bb2bca",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Mensaje valores",
+        "func": "if (msg.payload[0].CHIPID == \"ESP455863\") msg.payload[0].CHIPID = \"Alejandro\";\nif (msg.payload[0].CHIPID == \"ESP1122620\") msg.payload[0].CHIPID = \"Manuel\";\nif (msg.payload[0].CHIPID == \"ESP1127184\") msg.payload[0].CHIPID = \"Pablo\";\nif (msg.payload[0].CHIPID == \"ESP833748\") msg.payload[0].CHIPID = \"Teresa\";\n\nvar message = \"Datos de \" + msg.payload[0].CHIPID + \":\\n\\n\";\n\nfor (let i = 0; i < msg.payload.length; i++) {\n    fecha = msg.payload[i].date;\n    mes = fecha.getMonth() + 1;\n    dia = fecha.getDate();\n    hora = fecha.getHours();\n    minutos = fecha.getMinutes();\n    segundos = fecha.getSeconds();\n    if (mes<10) mes = \"0\" + mes;\n    if (dia<10) dia = \"0\" + dia;\n    if (hora<10) hora = \"0\" + hora;\n    if (minutos<10) minutos = \"0\" + minutos;  \n    if (segundos<10) segundos = \"0\" + segundos;    \n    fecha2 = dia + \"/\" + mes + \"/\" + fecha.getFullYear() + \" \" + hora + \":\" + minutos + \":\" + segundos;\n    msg.payload[i].date = fecha2;\n    \n    message += (i + 1) + \". \" + msg.payload[i].date;\n    message += \"\\n     Temperatura: \" + msg.payload[i].DHT11.temp;\n    message += \"\\n     Humedad: \" + msg.payload[i].DHT11.hum + \"\\n\\n\";\n}\n\nmsg.payload = msg.telegram;\nmsg.payload.content = message;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 460,
+        "y": 860,
+        "wires": [
+            [
+                "bd3fe54a.11b06"
+            ]
+        ]
+    },
+    {
+        "id": "bd3fe54a.11b06",
+        "type": "telegram sender",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "bot": "c898c788.a2ecd",
+        "x": 700,
+        "y": 860,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "2e76efe3.2f7198",
+        "type": "telegram command",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "command": "/changeSwitch",
+        "bot": "c898c788.a2ecd",
+        "strict": false,
+        "hasresponse": false,
+        "useRegex": false,
+        "x": 160,
+        "y": 1100,
+        "wires": [
+            [
+                "46f1d4af.87a584"
+            ]
+        ]
+    },
+    {
+        "id": "f7af35a3.e5b128",
+        "type": "comment",
+        "z": "5cb43f3a.731428",
+        "name": "Cambio en los actuadores",
+        "info": "",
+        "x": 170,
+        "y": 940,
+        "wires": []
+    },
+    {
+        "id": "d774c25a.02e158",
+        "type": "mqtt out",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "topic": "",
+        "qos": "2",
+        "retain": "",
+        "broker": "575f4bbd.8057a4",
+        "x": 570,
+        "y": 1060,
+        "wires": []
+    },
+    {
+        "id": "7fa635a.e2dad4c",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Creación json",
+        "func": "let msg_split = msg.originalMessage.text.split(\" \");\n\nif (msg_split.length > 2 && !isNaN(Number(msg_split[2]))) {\n    if (msg_split[1] == \"Alejandro\") msg_split[1] = \"ESP455863\";\n    if (msg_split[1] == \"Manuel\") msg_split[1] = \"ESP1122620\";\n    if (msg_split[1] == \"Pablo\") msg_split[1] = \"ESP1127184\";\n    if (msg_split[1] == \"Teresa\") msg_split[1] = \"ESP833748\";\n    \n    msg.topic = \"infind/GRUPO2/\" + msg_split[1] + \"/led/cmd\";\n    msg.telegram = msg.payload;\n    msg.payload = { \"level\": Number(msg_split[2]) };\n    \n    if (Number(msg_split[2]) >= 0 && Number(msg_split[2] <= 100)) {\n        return msg;\n    }\n} else if (msg_split.length > 1 && !isNaN(Number(msg_split[1]))) {\n    msg1 = {};\n    msg2 = {};\n    msg3 = {};\n    msg4 = {};\n    \n    msg1.topic = \"infind/GRUPO2/ESP455863/led/cmd\";\n    msg1.telegram = msg.payload;\n    msg1.payload = { \"level\": Number(msg_split[1]) };\n    \n    msg2.topic = \"infind/GRUPO2/ESP1122620/led/cmd\";\n    msg2.telegram = msg.payload;\n    msg2.payload = { \"level\": Number(msg_split[1]) };\n    \n    msg3.topic = \"infind/GRUPO2/ESP1127184/led/cmd\";\n    msg3.telegram = msg.payload;\n    msg3.payload = { \"level\": Number(msg_split[1]) };\n    \n    msg4.topic = \"infind/GRUPO2/ESP833748/led/cmd\";\n    msg4.telegram = msg.payload;\n    msg4.payload = { \"level\": Number(msg_split[1]) };\n    \n    if (Number(msg_split[1]) >= 0 && Number(msg_split[1] <= 100)) {\n        return [msg1, msg2, msg3, msg4];\n    }\n}\n",
+        "outputs": 4,
+        "noerr": 0,
+        "x": 360,
+        "y": 1020,
+        "wires": [
+            [
+                "d774c25a.02e158"
+            ],
+            [
+                "d774c25a.02e158"
+            ],
+            [
+                "d774c25a.02e158"
+            ],
+            [
+                "d774c25a.02e158"
+            ]
+        ]
+    },
+    {
+        "id": "d88f83c4.5060f",
+        "type": "debug",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 790,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "a54db209.aba4e8",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Mensaje",
+        "func": "if (msg.payload[0].CHIPID == \"ESP455863\") msg.payload[0].CHIPID = \"Alejandro\";\nif (msg.payload[0].CHIPID == \"ESP1122620\") msg.payload[0].CHIPID = \"Manuel\";\nif (msg.payload[0].CHIPID == \"ESP1127184\") msg.payload[0].CHIPID = \"Pablo\";\nif (msg.payload[0].CHIPID == \"ESP833748\") msg.payload[0].CHIPID = \"Teresa\";\n\nvar message = \"Estado del SWITCH de \" + msg.payload[0].CHIPID + \": \" + msg.payload[0].switch;\n\nmsg.payload = msg.telegram;\nmsg.payload.content = message;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 560,
+        "y": 600,
+        "wires": [
+            [
+                "289e3cb1.1d4f4c"
+            ]
+        ]
+    },
+    {
+        "id": "c278113c.6b5c28",
+        "type": "mongodb in",
+        "z": "5cb43f3a.731428",
+        "mongodb": "6df5c12c.a685c8",
+        "name": "",
+        "collection": "switch",
+        "operation": "find",
+        "x": 460,
+        "y": 520,
+        "wires": [
+            [
+                "a54db209.aba4e8"
+            ]
+        ]
+    },
+    {
+        "id": "9e8d0485.8f2aa",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Aviso a Telegram",
+        "func": "message = [];\n\nif (msg.payload.DHT11.temp !== null) {\n    if (msg.payload.DHT11.temp > global.get(\"maxTemp\")) {\n        message.push(\"Temperatura demasiado elevada.\");\n    } else if (msg.payload.DHT11.temp < global.get(\"minTemp\")) {\n        message.push(\"Temperatura demasiado baja.\");\n    }\n}\n\nif (msg.payload.DHT11.hum !== null) {\n    if (msg.payload.DHT11.hum > global.get(\"maxHum\")) {\n        message.push(\"Humedad demasiado elevada.\");\n    } else if (msg.payload.DHT11.hum < global.get(\"minHum\")) {\n        message.push(\"Humedad demasiado baja.\");\n    }\n}\n\nif (message.length > 0) {\n    if (msg.payload.CHIPID == \"ESP455863\") msg.payload.CHIPID = \"Alejandro\";\n    if (msg.payload.CHIPID == \"ESP1122620\") msg.payload.CHIPID = \"Manuel\";\n    if (msg.payload.CHIPID == \"ESP1127184\") msg.payload.CHIPID = \"Pablo\";\n    if (msg.payload.CHIPID == \"ESP833748\") msg.payload.CHIPID = \"Teresa\";\n    \n    msg.payload.content = \"Aviso de \" + msg.payload.CHIPID + \": \";\n    msg.payload.content += \"\\n\" + message[0];\n    if (message.length > 1) {\n        msg.payload.content += \"\\n\" + message[1];\n    }\n    msg.payload.type = \"message\";\n    msg.payload.chatId = -1001279161690;\n    \n    return msg;\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 690,
+        "y": 1240,
+        "wires": [
+            [
+                "50baad58.e0b0cc"
+            ]
+        ]
+    },
+    {
+        "id": "b291213f.761df8",
+        "type": "mqtt in",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "topic": "infind/GRUPO2/+/datos",
+        "qos": "2",
+        "broker": "575f4bbd.8057a4",
+        "x": 180,
+        "y": 1300,
+        "wires": [
+            [
+                "54d27a83.6eaa9c"
+            ]
+        ]
+    },
+    {
+        "id": "54d27a83.6eaa9c",
+        "type": "json",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 370,
+        "y": 1300,
+        "wires": [
+            [
+                "486bf7d2.636f4"
+            ]
+        ]
+    },
+    {
+        "id": "8d05c17d.834e8",
+        "type": "comment",
+        "z": "5cb43f3a.731428",
+        "name": "Canal de difusión",
+        "info": "",
+        "x": 140,
+        "y": 1200,
+        "wires": []
+    },
+    {
+        "id": "50baad58.e0b0cc",
+        "type": "telegram sender",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "bot": "c898c788.a2ecd",
+        "x": 780,
+        "y": 1340,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "99fc7f89.d9d33",
+        "type": "mqtt in",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "topic": "infind/GRUPO2/+/errores",
+        "qos": "2",
+        "broker": "575f4bbd.8057a4",
+        "x": 190,
+        "y": 1380,
+        "wires": [
+            [
+                "72d4c18b.0a2a"
+            ]
+        ]
+    },
+    {
+        "id": "3968c68d.90a2e2",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Aviso a Telegram",
+        "func": "if (msg.payload.CHIPID == \"ESP455863\") msg.payload.CHIPID = \"Alejandro\";\nif (msg.payload.CHIPID == \"ESP1122620\") msg.payload.CHIPID = \"Manuel\";\nif (msg.payload.CHIPID == \"ESP1127184\") msg.payload.CHIPID = \"Pablo\";\nif (msg.payload.CHIPID == \"ESP833748\") msg.payload.CHIPID = \"Teresa\";\n\nmsg.payload.content = \"Aviso de \" + msg.payload.CHIPID + \": \";\nmsg.payload.content += \"\\n\" + msg.payload.mensaje;\nmsg.payload.type = \"message\";\nmsg.payload.chatId = -1001279161690;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 690,
+        "y": 1440,
+        "wires": [
+            [
+                "50baad58.e0b0cc"
+            ]
+        ]
+    },
+    {
+        "id": "72d4c18b.0a2a",
+        "type": "json",
+        "z": "5cb43f3a.731428",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 370,
+        "y": 1380,
+        "wires": [
+            [
+                "bb303125.d0e6c8"
+            ]
+        ]
+    },
+    {
+        "id": "4e437efc.17f1d8",
+        "type": "mongodb in",
+        "z": "5cb43f3a.731428",
+        "mongodb": "6df5c12c.a685c8",
+        "name": "",
+        "collection": "datos",
+        "operation": "find",
+        "x": 590,
+        "y": 780,
+        "wires": [
+            [
+                "1ef9bdf9.bb2bca",
+                "d88f83c4.5060f"
+            ]
+        ]
+    },
+    {
+        "id": "2ab0e14b.25f686",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Último registro",
+        "func": "let msg_split = msg.originalMessage.text.split(\" \");\n\nif (msg_split.length > 1) {\n    if (msg_split[1] == \"Alejandro\") msg_split[1] = \"ESP455863\";\n    if (msg_split[1] == \"Manuel\") msg_split[1] = \"ESP1122620\";\n    if (msg_split[1] == \"Pablo\") msg_split[1] = \"ESP1127184\";\n    if (msg_split[1] == \"Teresa\") msg_split[1] = \"ESP833748\";\n    \n    msg.limit = 1;\n    msg.sort = { \"date\": -1 };\n    msg.telegram = msg.payload;\n    msg.payload = { \"CHIPID\": { \"$eq\": msg_split[1] } };\n    \n    return msg;\n} else {\n    msg1 = {};\n    msg2 = {};\n    msg3 = {};\n    msg4 = {};\n    \n    msg1.limit = 1;\n    msg1.sort = { \"date\": -1 };\n    msg1.telegram = msg.payload;\n    msg1.payload = { \"CHIPID\": { \"$eq\": \"ESP455863\" } };\n    \n    msg2.limit = 1;\n    msg2.sort = { \"date\": -1 };\n    msg2.telegram = msg.payload;\n    msg2.payload = { \"CHIPID\": { \"$eq\": \"ESP1122620\" } };\n\n    msg3.limit = 1;\n    msg3.sort = { \"date\": -1 };\n    msg3.telegram = msg.payload;\n    msg3.payload = { \"CHIPID\": { \"$eq\": \"ESP1127184\" } };\n    \n    msg4.limit = 1;\n    msg4.sort = { \"date\": -1 };\n    msg4.telegram = msg.payload;\n    msg4.payload = { \"CHIPID\": { \"$eq\": \"ESP833748\" } };\n    \n    return [msg1, msg2, msg3, msg4];\n}",
+        "outputs": 4,
+        "noerr": 0,
+        "x": 260,
+        "y": 600,
+        "wires": [
+            [
+                "c278113c.6b5c28"
+            ],
+            [
+                "c278113c.6b5c28"
+            ],
+            [
+                "c278113c.6b5c28"
+            ],
+            [
+                "c278113c.6b5c28"
+            ]
+        ]
+    },
+    {
+        "id": "46f1d4af.87a584",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "Creación json",
+        "func": "let msg_split = msg.originalMessage.text.split(\" \");\n\nif (msg_split.length > 2 && !isNaN(Number(msg_split[2]))) {\n    if (msg_split[1] == \"Alejandro\") msg_split[1] = \"ESP455863\";\n    if (msg_split[1] == \"Manuel\") msg_split[1] = \"ESP1122620\";\n    if (msg_split[1] == \"Pablo\") msg_split[1] = \"ESP1127184\";\n    if (msg_split[1] == \"Teresa\") msg_split[1] = \"ESP833748\";\n    \n    msg.topic = \"infind/GRUPO2/\" + msg_split[1] + \"/switch/cmd\";\n    msg.telegram = msg.payload;\n    msg.payload = { \"level\": Number(msg_split[2]) };\n    \n    if (Number(msg_split[2]) === 0 || Number(msg_split[2]) == 1) {\n        return msg;\n    }\n} else if (msg_split.length > 1 && !isNaN(Number(msg_split[1]))) {\n    msg1 = {};\n    msg2 = {};\n    msg3 = {};\n    msg4 = {};\n    \n    msg1.topic = \"infind/GRUPO2/ESP455863/switch/cmd\";\n    msg1.telegram = msg.payload;\n    msg1.payload = { \"level\": msg_split[1] };\n    \n    msg2.topic = \"infind/GRUPO2/ESP1122620/switch/cmd\";\n    msg2.telegram = msg.payload;\n    msg2.payload = { \"level\": msg_split[1] };\n    \n    msg3.topic = \"infind/GRUPO2/ESP1127184/switch/cmd\";\n    msg3.telegram = msg.payload;\n    msg3.payload = { \"level\": msg_split[1] };\n    \n    msg4.topic = \"infind/GRUPO2/ESP833748/switch/cmd\";\n    msg4.telegram = msg.payload;\n    msg4.payload = { \"level\": msg_split[1] };\n    \n    if (Number(msg_split[1]) === 0 || Number(msg_split[1]) == 1) {\n        return [msg1, msg2, msg3, msg4];\n    }\n}\n",
+        "outputs": 4,
+        "noerr": 0,
+        "x": 360,
+        "y": 1100,
+        "wires": [
+            [
+                "d774c25a.02e158"
+            ],
+            [
+                "d774c25a.02e158"
+            ],
+            [
+                "d774c25a.02e158"
+            ],
+            [
+                "d774c25a.02e158"
+            ]
+        ]
+    },
+    {
+        "id": "486bf7d2.636f4",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "WhiteList",
+        "func": "if(msg.payload.CHIPID === \"ESP1122620\" || msg.payload.CHIPID === \"ESP833748\"  || msg.payload.CHIPID === \"ESP1127184\" || msg.payload.CHIPID === \"ESP455863\"){\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 520,
+        "y": 1300,
+        "wires": [
+            [
+                "9e8d0485.8f2aa"
+            ]
+        ]
+    },
+    {
+        "id": "bb303125.d0e6c8",
+        "type": "function",
+        "z": "5cb43f3a.731428",
+        "name": "WhiteList",
+        "func": "if(msg.payload.CHIPID === \"ESP1122620\" || msg.payload.CHIPID === \"ESP833748\"  || msg.payload.CHIPID === \"ESP1127184\" || msg.payload.CHIPID === \"ESP455863\"){\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 520,
+        "y": 1380,
+        "wires": [
+            [
+                "3968c68d.90a2e2"
+            ]
+        ]
+    },
+    {
+        "id": "c898c788.a2ecd",
+        "type": "telegram bot",
+        "z": "",
+        "botname": "Grupo2 IoT",
+        "usernames": "",
+        "chatids": "",
+        "baseapiurl": "",
+        "updatemode": "polling",
+        "pollinterval": "300",
+        "usesocks": false,
+        "sockshost": "",
+        "socksport": "6667",
+        "socksusername": "anonymous",
+        "sockspassword": "",
+        "bothost": "",
+        "localbotport": "8443",
+        "publicbotport": "8443",
+        "privatekey": "",
+        "certificate": "",
+        "useselfsignedcertificate": false,
+        "sslterminated": false,
+        "verboselogging": false
+    },
+    {
+        "id": "6df5c12c.a685c8",
+        "type": "mongodb",
+        "z": "",
+        "hostname": "iot.ac.uma.es",
+        "port": "27017",
+        "db": "IOT2",
+        "name": ""
+    },
+    {
+        "id": "575f4bbd.8057a4",
+        "type": "mqtt-broker",
+        "z": "",
+        "name": "",
+        "broker": "iot.ac.uma.es",
+        "port": "1883",
+        "clientid": "",
+        "usetls": false,
+        "compatmode": true,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": ""
+    }
+]
